@@ -5,169 +5,9 @@
 // $user = 'postgres';
 // $password = 'Postgres123!';
 
-$host = '127.0.0.1';
-$port = '5432';
-$dbname = 'borrow_db';
-$user = 'postgres';
-$password = '3205';
-
-$dsn = "pgsql:host=$host;port=$port;dbname='$dbname'";
-
-try {
-    $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-} catch (PDOException $e) {
-    echo "Database connection failed: " . $e->getMessage();
-}
-
-$error = '';
-$success = '';
-
-// 2. CRUD Router & Business Logic
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-
-    try {
-        // --- SECTION 1: BORROWER ACTIONS ---
-        if ($action === 'create_borrower') {
-            $stmt = $pdo->prepare("INSERT INTO borrowers (borrower_no, full_name, borrower_type) VALUES (:bno, :fname, :btype)");
-            $stmt->execute([':bno' => trim($_POST['borrower_no']), ':fname' => trim($_POST['full_name']), ':btype' => $_POST['borrower_type']]);
-            $success = "Borrower added.";
-        } elseif ($action === 'update_borrower') {
-            $stmt = $pdo->prepare("UPDATE borrowers SET borrower_no = :bno, full_name = :fname, borrower_type = :btype WHERE borrower_id = :id");
-            $stmt->execute([':bno' => trim($_POST['borrower_no']), ':fname' => trim($_POST['full_name']), ':btype' => $_POST['borrower_type'], ':id' => (int) $_POST['borrower_id']]);
-            $success = "Borrower updated.";
-        } elseif ($action === 'delete_borrower') {
-            $stmt = $pdo->prepare("DELETE FROM borrowers WHERE borrower_id = :id");
-            $stmt->execute([':id' => (int) $_POST['borrower_id']]);
-            $success = "Borrower deleted.";
-        }
-
-        // --- SECTION 2: EQUIPMENT ACTIONS ---
-        elseif ($action === 'create_eq') {
-            $stmt = $pdo->prepare("INSERT INTO equipment (property_no, equipment_name, quantity_available) VALUES (:prop, :name, :qty)");
-            $stmt->execute([':prop' => trim($_POST['property_no']), ':name' => trim($_POST['equipment_name']), ':qty' => (int) $_POST['quantity_available']]);
-            $success = "Equipment added.";
-        } elseif ($action === 'update_eq') {
-            $stmt = $pdo->prepare("UPDATE equipment SET property_no = :prop, equipment_name = :name, quantity_available = :qty WHERE equipment_id = :id");
-            $stmt->execute([':prop' => trim($_POST['property_no']), ':name' => trim($_POST['equipment_name']), ':qty' => (int) $_POST['quantity_available'], ':id' => (int) $_POST['equipment_id']]);
-            $success = "Equipment updated.";
-        } elseif ($action === 'delete_eq') {
-            $stmt = $pdo->prepare("DELETE FROM equipment WHERE equipment_id = :id");
-            $stmt->execute([':id' => (int) $_POST['equipment_id']]);
-            $success = "Equipment deleted.";
-        } elseif ($action === 'adjust_stock') {
-            $stmt = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available + :amount WHERE equipment_id = :id");
-            $stmt->execute([':amount' => (int) $_POST['amount'], ':id' => (int) $_POST['equipment_id']]);
-            $success = "Stock level adjusted.";
-        }
-
-        // --- SECTION 3: CHECKOUT (BORROW EQUIPMENT) ---
-        elseif ($action === 'checkout_equipment') {
-            $pdo->beginTransaction();
-            $borrowerId = (int) $_POST['borrower_id'];
-            $eqId = (int) $_POST['equipment_id'];
-            $qty = (int) $_POST['quantity'];
-            $dueDate = $_POST['due_date'];
-
-            // 1. Create Transaction header (Default status is now 'Pending' per schema)
-            $stmtTx = $pdo->prepare("INSERT INTO borrow_transactions (borrower_id, due_date, status) VALUES (:bid, :due, 'Pending') RETURNING borrow_id");
-            $stmtTx->execute([':bid' => $borrowerId, ':due' => $dueDate]);
-            $borrowId = $stmtTx->fetchColumn();
-
-            // 2. Create Line Item
-            $stmtItem = $pdo->prepare("INSERT INTO borrow_items (borrow_id, equipment_id, quantity) VALUES (:bid, :eqid, :qty)");
-            $stmtItem->execute([':bid' => $borrowId, ':eqid' => $eqId, ':qty' => $qty]);
-
-            // 3. Deduct Stock
-            $stmtEq = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available - :qty WHERE equipment_id = :id");
-            $stmtEq->execute([':qty' => $qty, ':id' => $eqId]);
-
-            $pdo->commit();
-            $success = "Equipment checked out successfully (Pending Approval).";
-        }
-
-        // --- SECTION 4: MANAGE LOAN (RETURN / EXTEND / STATUS CHANGE) ---
-        elseif ($action === 'manage_loan') {
-            $pdo->beginTransaction();
-            $txId = (int) $_POST['borrow_id'];
-            $newStatus = $_POST['status'];
-            $newDueDate = $_POST['due_date'];
-
-            $stmtCurrent = $pdo->prepare("SELECT status FROM borrow_transactions WHERE borrow_id = :id");
-            $stmtCurrent->execute([':id' => $txId]);
-            $currentStatus = $stmtCurrent->fetchColumn();
-
-            $stmtUp = $pdo->prepare("UPDATE borrow_transactions SET status = :status, due_date = :due WHERE borrow_id = :id");
-            $stmtUp->execute([':status' => $newStatus, ':due' => $newDueDate, ':id' => $txId]);
-
-            // Stock Restoration Logic (Only 'Returned' restores stock now)
-            $restoringStatuses = ['Returned'];
-            $wasRestored = in_array($currentStatus, $restoringStatuses);
-            $isRestored = in_array($newStatus, $restoringStatuses);
-
-            if (!$wasRestored && $isRestored) {
-                // Moving to Returned: Restore stock
-                $items = $pdo->query("SELECT equipment_id, quantity FROM borrow_items WHERE borrow_id = $txId")->fetchAll();
-                $stmtRestore = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available + :qty WHERE equipment_id = :id");
-                foreach ($items as $i) {
-                    $stmtRestore->execute([':qty' => $i['quantity'], ':id' => $i['equipment_id']]);
-                }
-            } elseif ($wasRestored && !$isRestored) {
-                // Moving from Returned to Pending/Approved (Undo Return): Deduct stock
-                $items = $pdo->query("SELECT equipment_id, quantity FROM borrow_items WHERE borrow_id = $txId")->fetchAll();
-                $stmtDeduct = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available - :qty WHERE equipment_id = :id");
-                foreach ($items as $i) {
-                    $stmtDeduct->execute([':qty' => $i['quantity'], ':id' => $i['equipment_id']]);
-                }
-            }
-
-            $pdo->commit();
-            $success = "Transaction updated and inventory synchronized.";
-        }
-
-        header("Location: " . $_SERVER['PHP_SELF'] . "?msg=" . urlencode($success));
-        exit;
-    } catch (PDOException $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-
-        if ($e->getCode() === '23503') {
-            $error = "Foreign Key Error: Cannot delete record linked to active transactions.";
-        } elseif ($e->getCode() === '23505') {
-            $error = "Duplicate Entry: Record or unique property already exists.";
-        } elseif ($e->getCode() === '23514') {
-            if (strpos($e->getMessage(), 'borrow_transactions_check') !== false) {
-                $error = "Date Error: Due date cannot be earlier than the borrow date.";
-            } else {
-                $error = "Inventory Error: Not enough quantity available in stock to fulfill request.";
-            }
-        } else {
-            $error = "Database Error: " . $e->getMessage();
-        }
-    }
-}
-
-if (isset($_GET['msg'])) {
-    $success = $_GET['msg'];
-}
-
-// 3. READ DATA FOR UI
-$borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id DESC")->fetchAll();
-$equipments = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id DESC")->fetchAll();
-
-// week 
-$activeLoans = $pdo->query("
-    SELECT t.borrow_id, t.borrow_date, t.due_date, t.status, 
-           b.full_name, b.borrower_type, 
-           e.equipment_name, e.property_no, 
-           bi.quantity
-    FROM borrow_transactions t
-    JOIN borrowers b ON t.borrower_id = b.borrower_id
-    JOIN borrow_items bi ON t.borrow_id = bi.borrow_id
-    JOIN equipment e ON bi.equipment_id = e.equipment_id
-    ORDER BY t.status ASC, t.due_date ASC
-")->fetchAll();
+require('scripts/main.php');
+require('scripts/reportsW6.php');
+$currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 
 <!DOCTYPE html>
@@ -198,7 +38,28 @@ $activeLoans = $pdo->query("
 </head>
 
 <body class="bg-body-tertiary">
-
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-body sticky-top mb-4 shadow-sm">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fw-bold text-primary" href="index.php">Equipment System</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link <?= ($currentPage === 'index.php') ? 'active' : '' ?>" 
+             <?= ($currentPage === 'index.php') ? 'aria-current="page"' : '' ?> 
+             href="index.php">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <?= ($currentPage === 'week7.php') ? 'active' : '' ?>" 
+             <?= ($currentPage === 'week7.php') ? 'aria-current="page"' : '' ?> 
+             href="week7.php">Week 7</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
     <div class="container-fluid py-4 px-4">
         <div class="mb-4">
             <h2 class="text-primary mb-0">Equipment Management System</h2>
@@ -446,11 +307,11 @@ $activeLoans = $pdo->query("
         </div>
 
         <!-- ==========================================
-         SECTION 4: MANAGE ACTIVE LOANS
+         SECTION 4: MANAGE ACTIVE LOANS & FILTERED RECORDS
          ========================================== -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-info text-dark">
-                <h5 class="mb-0">4. Manage Loans (Approve, Return, Extend)</h5>
+            <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">4. Filtered Borrowing Records & Management</h5>
             </div>
             <div class="card-body row g-4">
                 <div class="col-lg-3 border-end">
@@ -468,7 +329,7 @@ $activeLoans = $pdo->query("
                             <label class="form-label small">Change Status</label>
                             <select name="status" id="mlStatus" class="form-select" required disabled>
                                 <option value="Pending">Pending</option>
-                                <option value="Approved">Approved</option>
+                                <option value="Active">Active</option>
                                 <option value="Overdue">Overdue</option>
                                 <option value="Returned">Returned (Restores Stock)</option>
                             </select>
@@ -479,6 +340,39 @@ $activeLoans = $pdo->query("
                 </div>
 
                 <div class="col-lg-9">
+                    <!-- Filter Form -->
+                    <form method="GET" class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small">Status Filter</label>
+                            <select name="tx_status" class="form-select form-select-sm">
+                                <option value="">All Statuses</option>
+                                <option value="Pending" <?= $txStatusFilter === 'Pending' ? 'selected' : '' ?>>Pending
+                                </option>
+                                <option value="Active" <?= $txStatusFilter === 'Active' ? 'selected' : '' ?>>Active
+                                </option>
+                                <option value="Overdue" <?= $txStatusFilter === 'Overdue' ? 'selected' : '' ?>>Overdue
+                                </option>
+                                <option value="Returned" <?= $txStatusFilter === 'Returned' ? 'selected' : '' ?>>Returned   
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">From Due Date</label>
+                            <input type="date" name="start_date" class="form-control form-control-sm"
+                                value="<?= htmlspecialchars($txStartDate) ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">To Due Date</label>
+                            <input type="date" name="end_date" class="form-control form-control-sm"
+                                value="<?= htmlspecialchars($txEndDate) ?>">
+                        </div>
+                        <div class="col-md-3 d-flex gap-1">
+                            <button type="submit" class="btn btn-sm btn-info text-dark w-100 fw-bold">Filter</button>
+                            <a href="<?= strtok($_SERVER["REQUEST_URI"], '?') ?>"
+                                class="btn btn-sm btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+
                     <div class="table-responsive table-container border rounded">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-dark">
@@ -519,12 +413,107 @@ $activeLoans = $pdo->query("
                                 <?php endforeach; ?>
                                 <?php if (empty($activeLoans)): ?>
                                     <tr>
-                                        <td colspan="7" class="text-center py-3">No loan history available.</td>
+                                        <td colspan="7" class="text-center py-3 text-muted">No transactions found matching
+                                            the
+                                            selected filters.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- ==========================================
+         SECTION 5: SYSTEM ANALYTICS & REPORTS
+         ========================================== -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">5. System Analytics & Reports</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    
+                    <!-- Card 1: Borrower Type Summary -->
+                    <div class="col-md-4">
+                        <div class="card border-primary h-100 shadow-sm">
+                            <div class="card-header bg-primary text-white fw-bold">Borrower Type Summary</div>
+                            <div class="card-body p-0">
+                                <table class="table table-sm table-striped mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr><th>Category</th><th class="text-end">Total Borrowers</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($borrowerTypeSummary as $bt): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($bt['borrower_type']) ?></td>
+                                                <td class="text-end fw-bold"><?= (int)$bt['total_count'] ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        <?php if (empty($borrowerTypeSummary)): ?>
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted py-3">No data available.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Transaction Status Summary -->
+                    <div class="col-md-4">
+                        <div class="card border-info h-100 shadow-sm">
+                            <div class="card-header bg-info text-dark fw-bold">Transaction Status Summary</div>
+                            <div class="card-body p-0">
+                                <table class="table table-sm table-striped mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr><th>Status</th><th class="text-end">Total Transactions</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($transactionStatusSummary as $ts): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($ts['status']) ?></td>
+                                                <td class="text-end fw-bold"><?= (int)$ts['total_count'] ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        <?php if (empty($transactionStatusSummary)): ?>
+                                            <tr><td colspan="2" class="text-center text-muted py-3">No data available.</td></tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Grouped Borrowing Analysis (GROUP BY & HAVING >= 2) -->
+                    <div class="col-md-4">
+                        <div class="card border-success h-100 shadow-sm">
+                            <div class="card-header bg-success text-white fw-bold">Grouped Borrowing Analysis (2+ Loans)</div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                    <table class="table table-sm table-striped mb-0 align-middle">
+                                        <thead class="table-light sticky-top">
+                                            <tr><th>Borrower</th><th>Type</th><th class="text-end">Loans</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($groupedBorrowingAnalysis as $gb): ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars($gb['full_name']) ?></td>
+                                                    <td><span class="badge bg-secondary"><?= htmlspecialchars($gb['borrower_type']) ?></span></td>
+                                                    <td class="text-end fw-bold"><?= (int)$gb['transaction_count'] ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            <?php if (empty($groupedBorrowingAnalysis)): ?>
+                                                <tr><td colspan="3" class="text-center text-muted py-3">No borrowers with 2+ transactions found.</td></tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
