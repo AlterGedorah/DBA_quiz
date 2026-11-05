@@ -229,8 +229,35 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </form>
                     </div>
                     <div class="col-lg-9">
-                        <input type="text" id="eqClientSearch" class="form-control form-control-sm mb-3"
-                            placeholder="Search equipment by property number or name...">
+                        <div class="row g-2 mb-3 align-items-end" id="eqFilterContainer">
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">Search Property No / Name</label>
+                                <input type="text" id="eqSearchInput" class="form-control form-control-sm"
+                                    placeholder="Search keyword...">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Sort By</label>
+                                <select id="eqSortColumn" class="form-select form-select-sm">
+                                    <option value="0">Property No</option>
+                                    <option value="1" selected>Equipment Name</option>
+                                    <option value="2">Quantity Available</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small mb-1">Order</label>
+                                <select id="eqSortDirection" class="form-select form-select-sm">
+                                    <option value="asc">ASC</option>
+                                    <option value="desc">DESC</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 d-flex gap-1">
+                                <button type="button" id="eqResetBtn"
+                                    class="btn btn-sm btn-outline-secondary w-100">Reset</button>
+                            </div>
+                        </div>
                         <div class="table-responsive table-container border rounded">
 
                             <table class="table table-sm table-hover align-middle mb-0">
@@ -337,6 +364,79 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <button type="submit" class="btn btn-warning w-100 fw-bold">Checkout</button>
                         </div>
                     </form>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-success text-dark">
+                            <h5 class="mb-0">Borrowers</h5>
+                        </div>
+                        <div class="table-responsive table-container border rounded" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0" id="borrowersTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($borrowers as $b): ?>
+                                        <tr>
+                                            <td>
+                                                <?= htmlspecialchars($b['borrower_no']) ?>
+                                            </td>
+                                            <td>
+                                                <?= htmlspecialchars($b['full_name']) ?>
+                                            </td>
+                                            <td><span class="badge bg-secondary">
+                                                    <?= htmlspecialchars($b['borrower_type']) ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-success text-dark">
+                            <h5 class="mb-0">Equipment</h5>
+                        </div>
+                        <div class="table-responsive table-container border rounded" style="max-height: 300px; overflow-y: auto;">
+
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Prop #</th>
+                                        <th>Name</th>
+                                        <th>Qty Available</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eqClientTableBody">
+                                    <?php foreach ($equipments as $e): ?>
+                                        <tr>
+                                            <td>
+                                                <?= htmlspecialchars($e['property_no']) ?>
+                                            </td>
+                                            <td>
+                                                <?= htmlspecialchars($e['equipment_name']) ?>
+                                            </td>
+                                            <td
+                                                class="fw-bold <?= $e['quantity_available'] == 0 ? 'text-danger' : 'text-success' ?>">
+                                                <?= (int) $e['quantity_available'] ?>
+                                            </td>
+
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

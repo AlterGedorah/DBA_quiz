@@ -16,7 +16,6 @@ try {
 $error = '';
 $success = '';
 
-// 2. CRUD Router & Business Logic
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -138,8 +137,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-
-        // Check if it's our custom thrown exception
         if (strpos($e->getMessage(), 'Inventory Error:') !== false || strpos($e->getMessage(), 'Selected equipment') !== false) {
             $error = $e->getMessage();
         } elseif ($e instanceof PDOException) {

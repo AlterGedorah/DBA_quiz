@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // 1. Tab State Retention
   const activeTabId = localStorage.getItem("activeTab");
   if (activeTabId) {
     const tabTrigger = document.querySelector(
@@ -15,7 +16,176 @@ document.addEventListener("DOMContentLoaded", function () {
       localStorage.setItem("activeTab", targetTab);
     });
   });
+
+  // Set minimum date for checkout/transactions if element exists
+  const newTxDate = document.getElementById("newTxDate");
+  if (newTxDate) {
+    newTxDate.min = new Date().toISOString().split("T")[0];
+  }
+
+  // --- 2. BORROWER FORM & FILTER/SORT LOGIC ---
+  const borrowerSearch = document.getElementById("borrowerSearch");
+  const borrowerTypeFilter = document.getElementById("borrowerTypeFilter");
+  const borrowerSortColumn = document.getElementById("borrowerSortColumn");
+  const borrowerSortDirection = document.getElementById(
+    "borrowerSortDirection",
+  );
+  const borrowersTableBody = document.querySelector("#borrowersTable tbody");
+
+  function filterAndSortBorrowers() {
+    if (!borrowersTableBody) return;
+    const searchQuery = borrowerSearch
+      ? borrowerSearch.value.toLowerCase().trim()
+      : "";
+    const selectedType = borrowerTypeFilter
+      ? borrowerTypeFilter.value.toLowerCase()
+      : "";
+    const colIndex = borrowerSortColumn
+      ? parseInt(borrowerSortColumn.value)
+      : 1;
+    const direction = borrowerSortDirection
+      ? borrowerSortDirection.value
+      : "asc";
+
+    let rows = Array.from(borrowersTableBody.querySelectorAll("tr"));
+
+    rows.forEach((row) => {
+      if (row.cells.length < 3) return;
+      const idText = row.cells[0].innerText.toLowerCase();
+      const nameText = row.cells[1].innerText.toLowerCase();
+      const typeText = row.cells[2].innerText.toLowerCase();
+
+      const matchesSearch =
+        idText.includes(searchQuery) || nameText.includes(searchQuery);
+      const matchesType = !selectedType || typeText.includes(selectedType);
+
+      row.style.display = matchesSearch && matchesType ? "" : "none";
+    });
+
+    rows.sort((rowA, rowB) => {
+      if (rowA.cells.length <= colIndex || rowB.cells.length <= colIndex)
+        return 0;
+      const valA = rowA.cells[colIndex].innerText.trim().toLowerCase();
+      const valB = rowB.cells[colIndex].innerText.trim().toLowerCase();
+
+      let comparison = valA.localeCompare(valB, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+
+      return direction === "asc" ? comparison : -comparison;
+    });
+
+    rows.forEach((row) => borrowersTableBody.appendChild(row));
+  }
+
+  if (borrowerSearch)
+    borrowerSearch.addEventListener("input", filterAndSortBorrowers);
+  if (borrowerTypeFilter)
+    borrowerTypeFilter.addEventListener("change", filterAndSortBorrowers);
+  if (borrowerSortColumn)
+    borrowerSortColumn.addEventListener("change", filterAndSortBorrowers);
+  if (borrowerSortDirection)
+    borrowerSortDirection.addEventListener("change", filterAndSortBorrowers);
+
+  // --- 3. EQUIPMENT FILTER & SORT LOGIC ---
+  const eqSearchInput = document.getElementById("eqSearchInput");
+  const eqSortColumn = document.getElementById("eqSortColumn");
+  const eqSortDirection = document.getElementById("eqSortDirection");
+  const eqResetBtn = document.getElementById("eqResetBtn");
+  const eqTableBody = document.getElementById("eqClientTableBody");
+
+  function filterAndSortEquipment() {
+    if (!eqTableBody) return;
+    const query = eqSearchInput ? eqSearchInput.value.toLowerCase().trim() : "";
+    const colIndex = eqSortColumn ? parseInt(eqSortColumn.value) : 1; // 0 = Prop #, 1 = Name, 2 = Qty
+    const direction = eqSortDirection ? eqSortDirection.value : "asc";
+
+    let rows = Array.from(eqTableBody.querySelectorAll("tr"));
+
+    rows.forEach((row) => {
+      if (row.cells.length < 4) return;
+      const propNo = row.cells[0].innerText.toLowerCase();
+      const eqName = row.cells[1].innerText.toLowerCase();
+
+      const matchesSearch = propNo.includes(query) || eqName.includes(query);
+      row.style.display = matchesSearch ? "" : "none";
+    });
+
+    rows.sort((rowA, rowB) => {
+      if (rowA.cells.length < 4 || rowB.cells.length < 4) return 0;
+      const valA = rowA.cells[colIndex].innerText.trim().toLowerCase();
+      const valB = rowB.cells[colIndex].innerText.trim().toLowerCase();
+
+      let comparison = 0;
+      if (colIndex === 2) {
+        const numA = parseFloat(valA) || 0;
+        const numB = parseFloat(valB) || 0;
+        comparison = numA - numB;
+      } else {
+        comparison = valA.localeCompare(valB, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      }
+
+      return direction === "asc" ? comparison : -comparison;
+    });
+
+    rows.forEach((row) => eqTableBody.appendChild(row));
+  }
+
+  if (eqSearchInput)
+    eqSearchInput.addEventListener("input", filterAndSortEquipment);
+  if (eqSortColumn)
+    eqSortColumn.addEventListener("change", filterAndSortEquipment);
+  if (eqSortDirection)
+    eqSortDirection.addEventListener("change", filterAndSortEquipment);
+
+  if (eqResetBtn) {
+    eqResetBtn.addEventListener("click", function () {
+      if (eqSearchInput) eqSearchInput.value = "";
+      if (eqSortColumn) eqSortColumn.value = "1";
+      if (eqSortDirection) eqSortDirection.value = "asc";
+      filterAndSortEquipment();
+    });
+  }
+
+  // --- 4. TRANSACTION FILTER LOGIC ---
+  const txClientSearch = document.getElementById("txClientSearch");
+  const txStatusFilter = document.getElementById("txStatusFilter");
+  const txClientTableBody = document.getElementById("txClientTableBody");
+
+  function filterTransactions() {
+    if (!txClientTableBody) return;
+    const searchQuery = txClientSearch
+      ? txClientSearch.value.toLowerCase()
+      : "";
+    const statusQuery = txStatusFilter
+      ? txStatusFilter.value.toLowerCase()
+      : "";
+    const rows = txClientTableBody.querySelectorAll("tr");
+
+    rows.forEach((row) => {
+      const text = row.innerText.toLowerCase();
+      const statusCell = row.cells[5]
+        ? row.cells[5].innerText.toLowerCase()
+        : "";
+
+      const matchesSearch = text.includes(searchQuery);
+      const matchesStatus = !statusQuery || statusCell.includes(statusQuery);
+
+      row.style.display = matchesSearch && matchesStatus ? "" : "none";
+    });
+  }
+
+  if (txClientSearch)
+    txClientSearch.addEventListener("input", filterTransactions);
+  if (txStatusFilter)
+    txStatusFilter.addEventListener("change", filterTransactions);
 });
+
+// --- 5. GLOBAL HELPER FUNCTIONS ---
 function editBorrower(id, no, name, type) {
   document.getElementById("actBorrower").value = "update_borrower";
   document.getElementById("idBorrower").value = id;
@@ -25,6 +195,7 @@ function editBorrower(id, no, name, type) {
   document.getElementById("btnSubmitBorrower").innerText = "Update";
   document.getElementById("btnCancelBorrower").classList.remove("d-none");
 }
+
 function resetBorrowerForm() {
   document.getElementById("actBorrower").value = "create_borrower";
   document.getElementById("idBorrower").value = "";
@@ -42,6 +213,7 @@ function editEq(id, prop, name, qty) {
   document.getElementById("btnSubmitEq").innerText = "Update";
   document.getElementById("btnCancelEq").classList.remove("d-none");
 }
+
 function resetEqForm() {
   document.getElementById("actEq").value = "create_eq";
   document.getElementById("idEq").value = "";
@@ -49,16 +221,6 @@ function resetEqForm() {
   document.getElementById("btnSubmitEq").innerText = "Save";
   document.getElementById("btnCancelEq").classList.add("d-none");
 }
-
-// Dynamic Stock Limiter
-document.getElementById("eqSelect").addEventListener("change", function () {
-  let maxStock = parseInt(
-    this.options[this.selectedIndex].getAttribute("data-stock"),
-  );
-  let qtyInput = document.getElementById("checkoutQty");
-  qtyInput.max = maxStock;
-  if (parseInt(qtyInput.value) > maxStock) qtyInput.value = maxStock;
-});
 
 function manageLoan(txId, dueDate, status) {
   document.getElementById("mlTxId").value = txId;
@@ -74,125 +236,3 @@ function manageLoan(txId, dueDate, status) {
     .getElementById("formManageLoan")
     .scrollIntoView({ behavior: "smooth", block: "center" });
 }
-
-document.getElementById("newTxDate").min = new Date()
-  .toISOString()
-  .split("T")[0];
-// Live Asynchronous Filtering Function
-function filterBorrowers() {
-  let searchText = document
-    .getElementById("borrowerSearch")
-    .value.toLowerCase();
-  let selectedType = document
-    .getElementById("borrowerTypeFilter")
-    .value.toLowerCase();
-  let rows = document.querySelectorAll("#borrowersTable tbody tr");
-
-  rows.forEach((row) => {
-    let idText = row.cells[0].innerText.toLowerCase();
-    let nameText = row.cells[1].innerText.toLowerCase();
-    let typeText = row.cells[2].innerText.toLowerCase();
-
-    let matchesSearch =
-      idText.includes(searchText) || nameText.includes(searchText);
-    let matchesType = selectedType === "" || typeText.includes(selectedType);
-
-    // Show row if it matches both search text and dropdown type, otherwise hide it
-    if (matchesSearch && matchesType) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  });
-}
-function filterTransactions() {
-  const searchQuery = document
-    .getElementById("txClientSearch")
-    .value.toLowerCase();
-  const statusQuery = document
-    .getElementById("txStatusFilter")
-    .value.toLowerCase();
-  const rows = document.querySelectorAll("#txClientTableBody tr");
-
-  rows.forEach((row) => {
-    const text = row.innerText.toLowerCase();
-    const statusCell = row.cells[5] ? row.cells[5].innerText.toLowerCase() : ""; // assuming status is column 6
-
-    const matchesSearch = text.includes(searchQuery);
-    const matchesStatus = !statusQuery || statusCell.includes(statusQuery);
-
-    row.style.display = matchesSearch && matchesStatus ? "" : "none";
-  });
-}
-
-document
-  .getElementById("txClientSearch")
-  .addEventListener("input", filterTransactions);
-document
-  .getElementById("txStatusFilter")
-  .addEventListener("change", filterTransactions);
-document
-  .getElementById("eqClientSearch")
-  .addEventListener("input", function () {
-    const query = this.value.toLowerCase();
-    const rows = document.querySelectorAll("#eqClientTableBody tr");
-
-    rows.forEach((row) => {
-      const text = row.innerText.toLowerCase();
-      row.style.display = text.includes(query) ? "" : "none";
-    });
-  });
-
-document
-  .getElementById("borrowerSearch")
-  .addEventListener("keyup", filterBorrowers);
-document
-  .getElementById("borrowerTypeFilter")
-  .addEventListener("change", filterBorrowers);
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("borrowerSearch");
-    const typeFilter = document.getElementById("borrowerTypeFilter");
-    const sortColumn = document.getElementById("borrowerSortColumn");
-    const sortDirection = document.getElementById("borrowerSortDirection");
-    const tableBody = document.querySelector("#borrowersTable tbody");
-
-    function filterAndSortBorrowers() {
-      const searchQuery = searchInput.value.toLowerCase().trim();
-      const selectedType = typeFilter.value.toLowerCase();
-      const colIndex = parseInt(sortColumn.value);
-      const direction = sortDirection.value; 
-
-      let rows = Array.from(tableBody.querySelectorAll("tr"));
-
-      rows.forEach((row) => {
-        const idText = row.cells[0].innerText.toLowerCase();
-        const nameText = row.cells[1].innerText.toLowerCase();
-        const typeText = row.cells[2].innerText.toLowerCase();
-
-        const matchesSearch =
-          idText.includes(searchQuery) || nameText.includes(searchQuery);
-        const matchesType = !selectedType || typeText.includes(selectedType);
-
-        row.style.display = matchesSearch && matchesType ? "" : "none";
-      });
-      rows.sort((rowA, rowB) => {
-        const valA = rowA.cells[colIndex].innerText.trim().toLowerCase();
-        const valB = rowB.cells[colIndex].innerText.trim().toLowerCase();
-
-        let comparison = valA.localeCompare(valB, undefined, {
-          numeric: true,
-          sensitivity: "base",
-        });
-
-        return direction === "asc" ? comparison : -comparison;
-      });
-
-      rows.forEach((row) => tableBody.appendChild(row));
-    }
-
-    searchInput.addEventListener("input", filterAndSortBorrowers);
-    typeFilter.addEventListener("change", filterAndSortBorrowers);
-    sortColumn.addEventListener("change", filterAndSortBorrowers);
-    sortDirection.addEventListener("change", filterAndSortBorrowers);
-  });
