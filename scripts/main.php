@@ -186,4 +186,31 @@ $sqlTx .= " ORDER BY t.status ASC, t.due_date ASC";
 $stmtTx = $pdo->prepare($sqlTx);
 $stmtTx->execute($txParams);
 $activeLoans = $stmtTx->fetchAll();
+
+function getSortParams($defaultCol, $allowedCols)
+{
+    $col = $_GET['sort'] ?? $defaultCol;
+    if (!in_array($col, $allowedCols)) {
+        $col = $defaultCol;
+    }
+    $order = strtoupper($_GET['order'] ?? 'ASC');
+    $order = ($order === 'DESC') ? 'DESC' : 'ASC';
+
+    $nextOrder = ($order === 'ASC') ? 'DESC' : 'ASC';
+
+    return ['col' => $col, 'order' => $order, 'nextOrder' => $nextOrder];
+}
+
+// --- 2. APPLY TO BORROWERS ---
+$bSort = getSortParams('borrower_id', ['borrower_id', 'borrower_no', 'full_name', 'borrower_type']);
+$borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY {$bSort['col']} {$bSort['order']}")->fetchAll();
+
+// --- 3. APPLY TO EQUIPMENT ---
+$eSort = getSortParams('equipment_id', ['equipment_id', 'property_no', 'equipment_name', 'quantity_available']);
+$equipments = $pdo->query("SELECT * FROM equipment ORDER BY {$eSort['col']} {$eSort['order']}")->fetchAll();
+
+// --- 4. APPLY TO TRANSACTIONS ---
+$tSort = getSortParams('borrow_id', ['borrow_id', 'full_name', 'equipment_name', 'quantity', 'due_date', 'status']);
+
+
 ?>
