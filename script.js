@@ -1,3 +1,24 @@
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. Restore the last active tab on page load
+  const activeTabId = localStorage.getItem("activeTab");
+  if (activeTabId) {
+    const tabTrigger = document.querySelector(
+      `[data-bs-target="${activeTabId}"]`,
+    );
+    if (tabTrigger) {
+      const tab = new bootstrap.Tab(tabTrigger);
+      tab.show();
+    }
+  }
+
+  // 2. Save the active tab ID to localStorage when clicked
+  document.querySelectorAll('button[data-bs-toggle="tab"]').forEach((tabEl) => {
+    tabEl.addEventListener("shown.bs.tab", function (event) {
+      const targetTab = event.target.getAttribute("data-bs-target");
+      localStorage.setItem("activeTab", targetTab);
+    });
+  });
+});
 function editBorrower(id, no, name, type) {
   document.getElementById("actBorrower").value = "update_borrower";
   document.getElementById("idBorrower").value = id;

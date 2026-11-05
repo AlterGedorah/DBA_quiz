@@ -63,8 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $qty = (int) $_POST['quantity'];
             $dueDate = $_POST['due_date'];
 
-            // 1. Create Transaction header (Default status is now 'Pending' per schema)
-            $stmtTx = $pdo->prepare("INSERT INTO borrow_transactions (borrower_id, due_date, status) VALUES (:bid, :due, 'Pending') RETURNING borrow_id");
+            // 0. Explicitly verify stock availability before proceeding
+            $stmtStock = $pdo->prepare("SELECT quantity_available, equipment_name FROM equipment WHERE equipment_id = :id FOR UPDATE");
+            $stmtStock->execute([':id' => $eqId]);
+            $equipment = $stmtStock->fetch(PDO::FETCH_ASSOC);
+
+            if (!$equipment) {
+                throw new Exception("Selected equipment item does not exist in the database.");
+            }
+
+            if ((int) $equipment['quantity_available'] < $qty) {
+                throw new Exception("Inventory Error: Only " . $equipment['quantity_available'] . " unit(s) of \"" . $equipment['equipment_name'] . "\" available in stock, but you requested " . $qty . ".");
+            }
+
+            // 1. Create Transaction header with 'Active' status (matching database check constraint)
+            $stmtTx = $pdo->prepare("INSERT INTO borrow_transactions (borrower_id, due_date, status) VALUES (:bid, :due, 'Active') RETURNING borrow_id");
             $stmtTx->execute([':bid' => $borrowerId, ':due' => $dueDate]);
             $borrowId = $stmtTx->fetchColumn();
 
@@ -72,12 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtItem = $pdo->prepare("INSERT INTO borrow_items (borrow_id, equipment_id, quantity) VALUES (:bid, :eqid, :qty)");
             $stmtItem->execute([':bid' => $borrowId, ':eqid' => $eqId, ':qty' => $qty]);
 
-            // 3. Deduct Stock
+            // 3. Deduct Stock safely
             $stmtEq = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available - :qty WHERE equipment_id = :id");
             $stmtEq->execute([':qty' => $qty, ':id' => $eqId]);
 
             $pdo->commit();
-            $success = "Equipment checked out successfully (Pending Approval).";
+            $success = "Equipment checked out successfully (Status: Active).";
         }
 
         // --- SECTION 4: MANAGE LOAN (RETURN / EXTEND / STATUS CHANGE) ---
@@ -121,23 +134,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         header("Location: " . $_SERVER['PHP_SELF'] . "?msg=" . urlencode($success));
         exit;
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
 
-        if ($e->getCode() === '23503') {
-            $error = "Foreign Key Error: Cannot delete record linked to active transactions.";
-        } elseif ($e->getCode() === '23505') {
-            $error = "Duplicate Entry: Record or unique property already exists.";
-        } elseif ($e->getCode() === '23514') {
-            if (strpos($e->getMessage(), 'borrow_transactions_check') !== false) {
-                $error = "Date Error: Due date cannot be earlier than the borrow date.";
+        // Check if it's our custom thrown exception
+        if (strpos($e->getMessage(), 'Inventory Error:') !== false || strpos($e->getMessage(), 'Selected equipment') !== false) {
+            $error = $e->getMessage();
+        } elseif ($e instanceof PDOException) {
+            if ($e->getCode() === '23503') {
+                $error = "Foreign Key Error: Cannot delete record linked to active transactions.";
+            } elseif ($e->getCode() === '23505') {
+                $error = "Duplicate Entry: Record or unique property already exists.";
+            } elseif ($e->getCode() === '23514') {
+                $error = "Database Constraint Error: Stock level cannot fall below zero.";
             } else {
-                $error = "Inventory Error: Not enough quantity available in stock to fulfill request.";
+                $error = "Database Error: " . $e->getMessage();
             }
         } else {
-            $error = "Database Error: " . $e->getMessage();
+            $error = "Error: " . $e->getMessage();
         }
     }
 }
