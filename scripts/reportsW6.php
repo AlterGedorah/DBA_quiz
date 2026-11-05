@@ -1,8 +1,8 @@
 <?php
 $borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id DESC")->fetchAll();
 $equipments = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id DESC")->fetchAll();
-// --- ANALYTICS QUERIES ---
-// Report 1: Borrower Type Summary
+
+// Borrower Type Summary
 $borrowerTypeSummary = $pdo->query("
     SELECT borrower_type, COUNT(*) as total_count 
     FROM borrowers 
@@ -10,7 +10,7 @@ $borrowerTypeSummary = $pdo->query("
     ORDER BY total_count DESC
 ")->fetchAll();
 
-// Report 2: Transaction Status Summary
+// Transaction Status Summary
 $transactionStatusSummary = $pdo->query("
     SELECT status, COUNT(*) as total_count 
     FROM borrow_transactions 
@@ -18,7 +18,7 @@ $transactionStatusSummary = $pdo->query("
     ORDER BY total_count DESC
 ")->fetchAll();
 
-// Report 3: Grouped Borrowing Analysis (Groups with at least 2 transactions)
+// Grouped Borrowing Analysis 
 $groupedBorrowingAnalysis = $pdo->query("
     SELECT b.full_name, b.borrower_type, COUNT(t.borrow_id) as transaction_count 
     FROM borrowers b

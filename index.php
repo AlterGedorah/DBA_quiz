@@ -32,18 +32,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 </head>
 
 <body class="bg-body-tertiary">
-    <!-- Top Navigation Bar / Page Links -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-body px-4 mb-3 shadow-sm">
-        <a class="navbar-brand fw-bold text-primary" href="index.php">Equipment Portal</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" href="index.php">Home Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="reportsW7.php">Week 7 Reports</a>
-                </li>
-            </ul>
+    <!-- Navbar -->
+    <?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-body sticky-top mb-4 shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold text-primary" href="index.php">Equipment System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'index.php') ? 'active' : '' ?>"
+                            href="index.php">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'week7.php') ? 'active' : '' ?>" href="week7.php">Week
+                            7 Reports</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
@@ -66,10 +74,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </div>
 
     <div class="container-fluid py-4 px-4 tab-content" id="myTabContent">
-        <div class="mb-4">
-            <h2 class="text-primary mb-0">Equipment Management System</h2>
-        </div>
-
         <!-- Alerts -->
         <?php if ($error): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -124,7 +128,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </div>
                     <div class="col-lg-9">
                         <div class="row g-2 mb-3">
-                            <div class="col-md-7">
+                            <div class="col-md-5">
                                 <input type="text" id="borrowerSearch" class="form-control form-control-sm"
                                     placeholder="Type to search ID or Name...">
                             </div>
@@ -137,10 +141,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="borrowerSortFilter" class="form-select form-select-sm">
-                                    <option value="">Sorting</option>
-                                    <option value="ascending">ASC</option>
-                                    <option value="descending">DESC</option>
+                                <select id="borrowerSortColumn" class="form-select form-select-sm" title="Sort By">
+                                    <option value="0">ID Number</option>
+                                    <option value="1" selected>Name</option>
+                                    <option value="2">Type</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select id="borrowerSortDirection" class="form-select form-select-sm" title="Order">
+                                    <option value="asc">ASC</option>
+                                    <option value="desc">DESC</option>
                                 </select>
                             </div>
                         </div>
@@ -219,7 +229,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </form>
                     </div>
                     <div class="col-lg-9">
+                        <input type="text" id="eqClientSearch" class="form-control form-control-sm mb-3"
+                            placeholder="Search equipment by property number or name...">
                         <div class="table-responsive table-container border rounded">
+
                             <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="table-dark">
                                     <tr>
@@ -229,7 +242,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                         <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="eqClientTableBody">
                                     <?php foreach ($equipments as $e): ?>
                                         <tr>
                                             <td><?= htmlspecialchars($e['property_no']) ?></td>
@@ -452,10 +465,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <div class="mb-3">
                                 <label class="form-label small">Change Status</label>
                                 <select name="status" id="mlStatus" class="form-select" required disabled>
-                                    <option value="Pending">Pending</option>
                                     <option value="Active">Active</option>
                                     <option value="Overdue">Overdue</option>
-                                    <option value="Returned">Returned (Restores Stock)</option>
+                                    <option value="Returned">Returned</option>
+                                    <option value="Cancelled">Cancelled</option>
                                 </select>
                             </div>
                             <button type="submit" class="btn btn-info text-dark w-100 fw-bold" id="btnSubmitMl"
@@ -495,7 +508,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     class="btn btn-sm btn-outline-secondary">Reset</a>
                             </div>
                         </form>
-
+                        <input type="text" id="txClientSearch" class="form-control form-control-sm mb-2"
+                            placeholder="Search transactions...">
+                        <select id="txStatusFilter" class="form-select form-select-sm mb-3">
+                            <option value="">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Returned">Returned</option>
+                            <option value="Overdue">Overdue</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
                         <div class="table-responsive table-container border rounded">
                             <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="table-dark">
@@ -509,7 +530,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                         <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="txClientTableBody">
                                     <?php foreach ($activeLoans as $loan):
                                         $bColor = match ($loan['status']) {
                                             'Pending' => 'text-warning',

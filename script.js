@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // 1. Restore the last active tab on page load
   const activeTabId = localStorage.getItem("activeTab");
   if (activeTabId) {
     const tabTrigger = document.querySelector(
@@ -10,8 +9,6 @@ document.addEventListener("DOMContentLoaded", function () {
       tab.show();
     }
   }
-
-  // 2. Save the active tab ID to localStorage when clicked
   document.querySelectorAll('button[data-bs-toggle="tab"]').forEach((tabEl) => {
     tabEl.addEventListener("shown.bs.tab", function (event) {
       const targetTab = event.target.getAttribute("data-bs-target");
@@ -108,11 +105,94 @@ function filterBorrowers() {
     }
   });
 }
+function filterTransactions() {
+  const searchQuery = document
+    .getElementById("txClientSearch")
+    .value.toLowerCase();
+  const statusQuery = document
+    .getElementById("txStatusFilter")
+    .value.toLowerCase();
+  const rows = document.querySelectorAll("#txClientTableBody tr");
 
-// Attach event listeners for real-time updates
+  rows.forEach((row) => {
+    const text = row.innerText.toLowerCase();
+    const statusCell = row.cells[5] ? row.cells[5].innerText.toLowerCase() : ""; // assuming status is column 6
+
+    const matchesSearch = text.includes(searchQuery);
+    const matchesStatus = !statusQuery || statusCell.includes(statusQuery);
+
+    row.style.display = matchesSearch && matchesStatus ? "" : "none";
+  });
+}
+
+document
+  .getElementById("txClientSearch")
+  .addEventListener("input", filterTransactions);
+document
+  .getElementById("txStatusFilter")
+  .addEventListener("change", filterTransactions);
+document
+  .getElementById("eqClientSearch")
+  .addEventListener("input", function () {
+    const query = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#eqClientTableBody tr");
+
+    rows.forEach((row) => {
+      const text = row.innerText.toLowerCase();
+      row.style.display = text.includes(query) ? "" : "none";
+    });
+  });
+
 document
   .getElementById("borrowerSearch")
   .addEventListener("keyup", filterBorrowers);
 document
   .getElementById("borrowerTypeFilter")
   .addEventListener("change", filterBorrowers);
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("borrowerSearch");
+    const typeFilter = document.getElementById("borrowerTypeFilter");
+    const sortColumn = document.getElementById("borrowerSortColumn");
+    const sortDirection = document.getElementById("borrowerSortDirection");
+    const tableBody = document.querySelector("#borrowersTable tbody");
+
+    function filterAndSortBorrowers() {
+      const searchQuery = searchInput.value.toLowerCase().trim();
+      const selectedType = typeFilter.value.toLowerCase();
+      const colIndex = parseInt(sortColumn.value);
+      const direction = sortDirection.value; 
+
+      let rows = Array.from(tableBody.querySelectorAll("tr"));
+
+      rows.forEach((row) => {
+        const idText = row.cells[0].innerText.toLowerCase();
+        const nameText = row.cells[1].innerText.toLowerCase();
+        const typeText = row.cells[2].innerText.toLowerCase();
+
+        const matchesSearch =
+          idText.includes(searchQuery) || nameText.includes(searchQuery);
+        const matchesType = !selectedType || typeText.includes(selectedType);
+
+        row.style.display = matchesSearch && matchesType ? "" : "none";
+      });
+      rows.sort((rowA, rowB) => {
+        const valA = rowA.cells[colIndex].innerText.trim().toLowerCase();
+        const valB = rowB.cells[colIndex].innerText.trim().toLowerCase();
+
+        let comparison = valA.localeCompare(valB, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+
+        return direction === "asc" ? comparison : -comparison;
+      });
+
+      rows.forEach((row) => tableBody.appendChild(row));
+    }
+
+    searchInput.addEventListener("input", filterAndSortBorrowers);
+    typeFilter.addEventListener("change", filterAndSortBorrowers);
+    sortColumn.addEventListener("change", filterAndSortBorrowers);
+    sortDirection.addEventListener("change", filterAndSortBorrowers);
+  });

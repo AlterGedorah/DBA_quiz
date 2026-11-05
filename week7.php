@@ -41,7 +41,7 @@ require('scripts/reportsW7.php');
               <a class="nav-link <?= ($currentPage === 'index.php') ? 'active' : '' ?>" href="index.php">Home</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link <?= ($currentPage === 'reportsW7.php') ? 'active' : '' ?>" href="reportsW7.php">Week 7 Reports</a>
+              <a class="nav-link <?= ($currentPage === 'week7.php') ? 'active' : '' ?>" href="week7.php">Week 7 Reports</a>
             </li>
           </ul>
         </div>
