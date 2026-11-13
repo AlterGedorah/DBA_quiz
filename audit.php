@@ -1,4 +1,5 @@
 <?php
+require('scripts/dbconn.php');
 require('scripts/auditLogs.php');
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>

@@ -1,4 +1,5 @@
 <?php
+require('scripts/dbconn.php');
 $currentPage = basename($_SERVER['PHP_SELF']);
 require('scripts/reportsW7.php');
 ?>
