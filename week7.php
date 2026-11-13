@@ -45,6 +45,9 @@ require('scripts/reportsW7.php');
                         <a class="nav-link <?= ($currentPage === 'week7.php') ? 'active' : '' ?>" href="week7.php">Week
                             7 Reports</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'audit.php') ? 'active' : '' ?>" href="audit.php">Audit Logs</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -174,11 +177,17 @@ require('scripts/reportsW7.php');
                                 <h5 class="mb-0">Equipment Borrowing Summary</h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-12">
-                                        <input type="text" id="searchReport2" class="form-control form-control-sm" placeholder="Search equipment or property number...">
+                                <form method="GET" class="row g-2 mb-3 align-items-end">
+                                    <input type="hidden" name="report2_page" value="1">
+                                    <div class="col-md-10">
+                                        <label class="form-label small mb-1">Search Equipment or Property Number</label>
+                                        <input type="text" name="report2_search" class="form-control form-control-sm" placeholder="Search equipment or property number..." value="<?= htmlspecialchars($report2Search) ?>">
                                     </div>
-                                </div>
+                                    <div class="col-md-2 d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-success w-100">Apply</button>
+                                        <a href="week7.php#report2" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                    </div>
+                                </form>
                                 <div class="table-responsive table-container border rounded">
                                     <table class="table table-sm table-hover align-middle mb-0" id="tableReport2">
                                         <thead class="table-dark">
@@ -212,6 +221,7 @@ require('scripts/reportsW7.php');
                                         </tbody>
                                     </table>
                                 </div>
+                                <?= renderPagination($report2Page, $report2TotalPages, 'report2_page', $_GET) ?>
                             </div>
                         </div>
                     </div>
@@ -284,11 +294,17 @@ require('scripts/reportsW7.php');
                                 <h5 class="mb-0">Equipment Without Borrowing History</h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-12">
-                                        <input type="text" id="searchReport4" class="form-control form-control-sm" placeholder="Search unborrowed equipment...">
+                                <form method="GET" class="row g-2 mb-3 align-items-end">
+                                    <input type="hidden" name="report4_page" value="1">
+                                    <div class="col-md-10">
+                                        <label class="form-label small mb-1">Search Unborrowed Equipment</label>
+                                        <input type="text" name="report4_search" class="form-control form-control-sm" placeholder="Search unborrowed equipment..." value="<?= htmlspecialchars($report4Search) ?>">
                                     </div>
-                                </div>
+                                    <div class="col-md-2 d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-danger w-100">Apply</button>
+                                        <a href="week7.php#report4" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                    </div>
+                                </form>
                                 <div class="table-responsive table-container border rounded">
                                     <table class="table table-sm table-hover align-middle mb-0" id="tableReport4">
                                         <thead class="table-dark">
@@ -314,6 +330,7 @@ require('scripts/reportsW7.php');
                                         </tbody>
                                     </table>
                                 </div>
+                                <?= renderPagination($report4Page, $report4TotalPages, 'report4_page', $_GET) ?>
                             </div>
                         </div>
                     </div>
@@ -328,11 +345,17 @@ require('scripts/reportsW7.php');
                                 <h5 class="mb-0">Monthly Borrowing Report</h5>
                             </div>
                             <div class="card-body">
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-12">
-                                        <input type="text" id="searchReport6" class="form-control form-control-sm" placeholder="Search month or year...">
+                                <form method="GET" class="row g-2 mb-3 align-items-end">
+                                    <input type="hidden" name="monthly_page" value="1">
+                                    <div class="col-md-10">
+                                        <label class="form-label small mb-1">Search Month or Year</label>
+                                        <input type="text" name="monthly_search" class="form-control form-control-sm" placeholder="Search month or year..." value="<?= htmlspecialchars($monthlySearch) ?>">
                                     </div>
-                                </div>
+                                    <div class="col-md-2 d-flex gap-2">
+                                        <button type="submit" class="btn btn-sm btn-secondary w-100">Apply</button>
+                                        <a href="week7.php#report6" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                    </div>
+                                </form>
                                 <div class="table-responsive table-container border rounded">
                                     <table class="table table-sm table-hover align-middle mb-0" id="tableReport6">
                                         <thead class="table-dark">
@@ -358,6 +381,7 @@ require('scripts/reportsW7.php');
                                         </tbody>
                                     </table>
                                 </div>
+                                <?= renderPagination($monthlyPage, $monthlyTotalPages, 'monthly_page', $_GET) ?>
                             </div>
                         </div>
                     </div>
@@ -535,9 +559,7 @@ require('scripts/reportsW7.php');
                 });
             }
 
-            setupSimpleSearch("searchReport2", "tableReport2");
-            setupSimpleSearch("searchReport4", "tableReport4");
-            setupSimpleSearch("searchReport6", "tableReport6");
+            
         });
     </script>
 </body>

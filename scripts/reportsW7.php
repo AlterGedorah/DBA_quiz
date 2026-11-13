@@ -265,11 +265,14 @@ $unionAllStmt->execute();
 $unionAllReport = $unionAllStmt->fetchAll();
 
 // Equipment Borrowing Summary
-$equipmentSummary = $pdo->query("
-    SELECT 
-        UPPER(e.property_no) AS property_no, 
-        INITCAP(e.equipment_name) AS equipment_name, 
-        COALESCE(SUM(bi.quantity), 0) AS total_qty_borrowed, 
+$report2Search = trim($_GET['report2_search'] ?? '');
+$report2Page = max(1, (int) ($_GET['report2_page'] ?? 1));
+
+$report2BaseSql = "
+    SELECT
+        UPPER(e.property_no) AS property_no,
+        INITCAP(e.equipment_name) AS equipment_name,
+        COALESCE(SUM(bi.quantity), 0) AS total_qty_borrowed,
         COUNT(DISTINCT t.borrow_id) AS transaction_count,
         ROUND(COALESCE(AVG(bi.quantity), 0), 2) AS avg_qty,
         COALESCE(MIN(bi.quantity), 0) AS min_qty,
@@ -278,27 +281,112 @@ $equipmentSummary = $pdo->query("
     LEFT JOIN borrow_items bi ON e.equipment_id = bi.equipment_id
     LEFT JOIN borrow_transactions t ON bi.borrow_id = t.borrow_id
     GROUP BY e.equipment_id, e.property_no, e.equipment_name
-    ORDER BY total_qty_borrowed DESC
-")->fetchAll();
+";
+
+$report2CountSql = "SELECT COUNT(*) FROM (" . $report2BaseSql . ") AS report2_data WHERE 1=1";
+$report2DataSql = "SELECT * FROM (" . $report2BaseSql . ") AS report2_data WHERE 1=1";
+$report2Params = [];
+
+if ($report2Search !== '') {
+    $report2CountSql .= ' AND (LOWER(property_no) LIKE :report2_search OR LOWER(equipment_name) LIKE :report2_search)';
+    $report2DataSql .= ' AND (LOWER(property_no) LIKE :report2_search OR LOWER(equipment_name) LIKE :report2_search)';
+    $report2Params[':report2_search'] = '%' . strtolower($report2Search) . '%';
+}
+
+$report2CountStmt = $pdo->prepare($report2CountSql);
+$report2CountStmt->execute($report2Params);
+$report2Total = (int) $report2CountStmt->fetchColumn();
+$report2TotalPages = max(1, (int) ceil($report2Total / $perPage));
+$report2Page = min($report2Page, $report2TotalPages);
+
+$report2DataSql .= ' ORDER BY total_qty_borrowed DESC LIMIT :limit OFFSET :offset';
+$report2Stmt = $pdo->prepare($report2DataSql);
+foreach ($report2Params as $key => $value) {
+    $report2Stmt->bindValue($key, $value);
+}
+$report2Stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$report2Stmt->bindValue(':offset', ($report2Page - 1) * $perPage, PDO::PARAM_INT);
+$report2Stmt->execute();
+$equipmentSummary = $report2Stmt->fetchAll();
 
 // Equipment Without Borrowing History
-$equipmentWithoutHistory = $pdo->query("
-    SELECT TRIM(e.property_no) AS property_no, INITCAP(e.equipment_name) AS equipment_name, e.quantity_available
+$report4Search = trim($_GET['report4_search'] ?? '');
+$report4Page = max(1, (int) ($_GET['report4_page'] ?? 1));
+
+$report4BaseSql = "
+    SELECT
+        TRIM(e.property_no) AS property_no,
+        INITCAP(e.equipment_name) AS equipment_name,
+        e.quantity_available
     FROM equipment e
     LEFT JOIN borrow_items bi ON e.equipment_id = bi.equipment_id
     WHERE bi.borrow_id IS NULL
-    ORDER BY e.equipment_id DESC
-")->fetchAll();
+";
+
+$report4CountSql = "SELECT COUNT(*) FROM (" . $report4BaseSql . ") AS report4_data WHERE 1=1";
+$report4DataSql = "SELECT * FROM (" . $report4BaseSql . ") AS report4_data WHERE 1=1";
+$report4Params = [];
+
+if ($report4Search !== '') {
+    $report4CountSql .= ' AND (LOWER(property_no) LIKE :report4_search OR LOWER(equipment_name) LIKE :report4_search)';
+    $report4DataSql .= ' AND (LOWER(property_no) LIKE :report4_search OR LOWER(equipment_name) LIKE :report4_search)';
+    $report4Params[':report4_search'] = '%' . strtolower($report4Search) . '%';
+}
+
+$report4CountStmt = $pdo->prepare($report4CountSql);
+$report4CountStmt->execute($report4Params);
+$report4Total = (int) $report4CountStmt->fetchColumn();
+$report4TotalPages = max(1, (int) ceil($report4Total / $perPage));
+$report4Page = min($report4Page, $report4TotalPages);
+
+$report4DataSql .= ' ORDER BY property_no ASC LIMIT :limit OFFSET :offset';
+$report4Stmt = $pdo->prepare($report4DataSql);
+foreach ($report4Params as $key => $value) {
+    $report4Stmt->bindValue($key, $value);
+}
+$report4Stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$report4Stmt->bindValue(':offset', ($report4Page - 1) * $perPage, PDO::PARAM_INT);
+$report4Stmt->execute();
+$equipmentWithoutHistory = $report4Stmt->fetchAll();
 
 // Monthly Borrowing Report 
-$monthlyReport = $pdo->query("
-    SELECT 
+$monthlyPage = max(1, (int) ($_GET['monthly_page'] ?? 1));
+$monthlySearch = trim($_GET['monthly_search'] ?? '');
+
+$monthlySourceSql = "
+    SELECT
         TO_CHAR(t.borrow_date, 'Month YYYY') AS readable_month,
+        DATE_TRUNC('month', t.borrow_date) AS month_key,
         COUNT(t.borrow_id) AS total_transactions,
-        SUM(bi.quantity) AS total_items_borrowed
+        COALESCE(SUM(bi.quantity), 0) AS total_items_borrowed
     FROM borrow_transactions t
     JOIN borrow_items bi ON t.borrow_id = bi.borrow_id
     GROUP BY TO_CHAR(t.borrow_date, 'Month YYYY'), DATE_TRUNC('month', t.borrow_date)
-    ORDER BY DATE_TRUNC('month', t.borrow_date) DESC
-")->fetchAll();
+";
+
+$monthlyCountSql = "SELECT COUNT(*) FROM (" . $monthlySourceSql . ") AS monthly_data WHERE 1=1";
+$monthlyDataSql = "SELECT readable_month, total_transactions, total_items_borrowed, month_key FROM (" . $monthlySourceSql . ") AS monthly_data WHERE 1=1";
+$monthlyParams = [];
+
+if ($monthlySearch !== '') {
+    $monthlyCountSql .= ' AND LOWER(readable_month) LIKE :monthly_search';
+    $monthlyDataSql .= ' AND LOWER(readable_month) LIKE :monthly_search';
+    $monthlyParams[':monthly_search'] = '%' . strtolower($monthlySearch) . '%';
+}
+
+$monthlyCountStmt = $pdo->prepare($monthlyCountSql);
+$monthlyCountStmt->execute($monthlyParams);
+$monthlyTotal = (int) $monthlyCountStmt->fetchColumn();
+$monthlyTotalPages = max(1, (int) ceil($monthlyTotal / $perPage));
+$monthlyPage = min($monthlyPage, $monthlyTotalPages);
+
+$monthlyDataSql .= ' ORDER BY month_key DESC LIMIT :limit OFFSET :offset';
+$monthlyStmt = $pdo->prepare($monthlyDataSql);
+foreach ($monthlyParams as $key => $value) {
+    $monthlyStmt->bindValue($key, $value);
+}
+$monthlyStmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$monthlyStmt->bindValue(':offset', ($monthlyPage - 1) * $perPage, PDO::PARAM_INT);
+$monthlyStmt->execute();
+$monthlyReport = $monthlyStmt->fetchAll();
 ?>

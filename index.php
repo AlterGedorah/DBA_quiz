@@ -50,6 +50,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <a class="nav-link <?= ($currentPage === 'week7.php') ? 'active' : '' ?>" href="week7.php">Week
                             7 Reports</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'audit.php') ? 'active' : '' ?>" href="audit.php">Audit Logs</a>
+                    </li>
                 </ul>
             </div>
         </div>
