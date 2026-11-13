@@ -58,21 +58,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'checkout_equipment') {
             $pdo->beginTransaction();
             $borrowerId = (int) $_POST['borrower_id'];
-            $eqId = (int) $_POST['equipment_id'];
-            $qty = (int) $_POST['quantity'];
             $dueDate = $_POST['due_date'];
 
-            // 0. Explicitly verify stock availability before proceeding
-            $stmtStock = $pdo->prepare("SELECT quantity_available, equipment_name FROM equipment WHERE equipment_id = :id FOR UPDATE");
-            $stmtStock->execute([':id' => $eqId]);
-            $equipment = $stmtStock->fetch(PDO::FETCH_ASSOC);
+            $equipmentIds = $_POST['equipment_id'] ?? [];
+            $quantities = $_POST['quantity'] ?? [];
 
-            if (!$equipment) {
-                throw new Exception("Selected equipment item does not exist in the database.");
+            if (!is_array($equipmentIds) || !is_array($quantities) || count($equipmentIds) !== count($quantities)) {
+                throw new Exception("Invalid checkout request payload.");
             }
 
-            if ((int) $equipment['quantity_available'] < $qty) {
-                throw new Exception("Inventory Error: Only " . $equipment['quantity_available'] . " unit(s) of \"" . $equipment['equipment_name'] . "\" available in stock, but you requested " . $qty . ".");
+            $requestedByEquipment = [];
+            foreach ($equipmentIds as $index => $equipmentId) {
+                $eqId = (int) $equipmentId;
+                $qty = (int) ($quantities[$index] ?? 0);
+
+                if ($eqId <= 0 || $qty <= 0) {
+                    continue;
+                }
+
+                if (!isset($requestedByEquipment[$eqId])) {
+                    $requestedByEquipment[$eqId] = 0;
+                }
+                $requestedByEquipment[$eqId] += $qty;
+            }
+
+            if (empty($requestedByEquipment)) {
+                throw new Exception("Please add at least one valid equipment item with quantity.");
+            }
+
+            // 0. Explicitly verify stock availability before proceeding for all items
+            $stmtStock = $pdo->prepare("SELECT quantity_available, equipment_name FROM equipment WHERE equipment_id = :id FOR UPDATE");
+            foreach ($requestedByEquipment as $eqId => $qty) {
+                $stmtStock->execute([':id' => $eqId]);
+                $equipment = $stmtStock->fetch(PDO::FETCH_ASSOC);
+
+                if (!$equipment) {
+                    throw new Exception("Selected equipment item does not exist in the database.");
+                }
+
+                if ((int) $equipment['quantity_available'] < $qty) {
+                    throw new Exception("Inventory Error: Only " . $equipment['quantity_available'] . " unit(s) of \"" . $equipment['equipment_name'] . "\" available in stock, but you requested " . $qty . ".");
+                }
             }
 
             // 1. Create Transaction header with 'Active' status (matching database check constraint)
@@ -80,16 +106,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtTx->execute([':bid' => $borrowerId, ':due' => $dueDate]);
             $borrowId = $stmtTx->fetchColumn();
 
-            // 2. Create Line Item
+            // 2. Create Line Items
             $stmtItem = $pdo->prepare("INSERT INTO borrow_items (borrow_id, equipment_id, quantity) VALUES (:bid, :eqid, :qty)");
-            $stmtItem->execute([':bid' => $borrowId, ':eqid' => $eqId, ':qty' => $qty]);
-
-            // 3. Deduct Stock safely
             $stmtEq = $pdo->prepare("UPDATE equipment SET quantity_available = quantity_available - :qty WHERE equipment_id = :id");
-            $stmtEq->execute([':qty' => $qty, ':id' => $eqId]);
+            foreach ($requestedByEquipment as $eqId => $qty) {
+                $stmtItem->execute([':bid' => $borrowId, ':eqid' => $eqId, ':qty' => $qty]);
+
+                // 3. Deduct stock safely
+                $stmtEq->execute([':qty' => $qty, ':id' => $eqId]);
+            }
 
             $pdo->commit();
-            $success = "Equipment checked out successfully (Status: Active).";
+            $success = "Equipment checked out successfully with " . count($requestedByEquipment) . " item(s) (Status: Active).";
         }
 
         // --- SECTION 4: MANAGE LOAN (RETURN / EXTEND / STATUS CHANGE) ---

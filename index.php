@@ -346,7 +346,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <h5 class="mb-0">Checkout Equipment</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" class="row g-3 align-items-end">
+                    <form method="POST" class="row g-3 align-items-start">
                         <input type="hidden" name="action" value="checkout_equipment">
 
                         <div class="col-md-3">
@@ -359,23 +359,31 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Select Equipment</label>
-                            <select name="equipment_id" id="eqSelect" class="form-select" required>
-                                <option value="" data-stock="0" disabled selected>Choose Item (In Stock)...</option>
-                                <?php foreach ($allEquipments as $e): ?>
-                                    <?php if ($e['quantity_available'] > 0): ?>
-                                        <option value="<?= $e['equipment_id'] ?>" data-stock="<?= $e['quantity_available'] ?>">
-                                            <?= htmlspecialchars($e['equipment_name']) ?> (<?= $e['quantity_available'] ?> left)
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label small fw-bold">Qty</label>
-                            <input type="number" name="quantity" id="checkoutQty" class="form-control" min="1" value="1"
-                                required>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold">Equipment Items</label>
+                            <div id="checkoutItemsContainer" class="d-flex flex-column gap-2">
+                                <div class="row g-2 checkout-item-row">
+                                    <div class="col-8">
+                                        <select name="equipment_id[]" class="form-select checkout-eq-select" required>
+                                            <option value="" data-stock="0" disabled selected>Choose Item (In Stock)...</option>
+                                            <?php foreach ($allEquipments as $e): ?>
+                                                <?php if ($e['quantity_available'] > 0): ?>
+                                                    <option value="<?= $e['equipment_id'] ?>" data-stock="<?= $e['quantity_available'] ?>">
+                                                        <?= htmlspecialchars($e['equipment_name']) ?> (<?= $e['quantity_available'] ?> left)
+                                                    </option>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="quantity[]" class="form-control checkout-qty-input" min="1" value="1" required>
+                                    </div>
+                                    <div class="col-1 d-flex align-items-center justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger checkout-remove-item d-none">x</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="btnAddCheckoutItem">+ Add Item</button>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small fw-bold">Due Date</label>
@@ -385,6 +393,38 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <button type="submit" class="btn btn-warning w-100 fw-bold">Checkout</button>
                         </div>
                     </form>
+
+                    <template id="checkoutItemTemplate">
+                        <div class="row g-2 checkout-item-row">
+                            <div class="col-8">
+                                <select name="equipment_id[]" class="form-select checkout-eq-select" required>
+                                    <option value="" data-stock="0" disabled selected>Choose Item (In Stock)...</option>
+                                    <?php foreach ($allEquipments as $e): ?>
+                                        <?php if ($e['quantity_available'] > 0): ?>
+                                            <option value="<?= $e['equipment_id'] ?>" data-stock="<?= $e['quantity_available'] ?>">
+                                                <?= htmlspecialchars($e['equipment_name']) ?> (<?= $e['quantity_available'] ?> left)
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" name="quantity[]" class="form-control checkout-qty-input" min="1" value="1" required>
+                            </div>
+                            <div class="col-1 d-flex align-items-center justify-content-end">
+                                <button type="button" class="btn btn-sm btn-outline-danger checkout-remove-item">x</button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="mt-3 p-3 border rounded bg-dark-subtle" id="checkoutSelectionPreview">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold">Added Items Preview</span>
+                            <span class="badge bg-secondary" id="checkoutPreviewCount">0</span>
+                        </div>
+                        <ul class="list-group list-group-flush" id="checkoutPreviewList"></ul>
+                        <p class="text-muted small mb-0 mt-2" id="checkoutPreviewEmpty">No items added yet.</p>
+                    </div>
                 </div>
             </div>
             <div class="row">
