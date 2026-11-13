@@ -159,51 +159,210 @@ if (isset($_GET['msg'])) {
     $success = $_GET['msg'];
 }
 
-// 3. READ DATA FOR UI
-$borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id DESC")->fetchAll();
-$equipments = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id DESC")->fetchAll();
+function renderPagination($currentPage, $totalPages, $pageParam, $queryParams = [])
+{
+    if ($totalPages <= 1) {
+        return '';
+    }
 
+    $queryParams = is_array($queryParams) ? $queryParams : [];
+    $currentPage = max(1, (int) $currentPage);
+    $totalPages = max(1, (int) $totalPages);
+    $currentPage = min($currentPage, $totalPages);
 
-// Capture filter inputs from URL
+    $html = '<nav aria-label="Pagination"><ul class="pagination pagination-sm justify-content-center mb-0 mt-3">';
+
+    $prevParams = $queryParams;
+    $prevParams[$pageParam] = max(1, $currentPage - 1);
+    $html .= '<li class="page-item ' . ($currentPage <= 1 ? 'disabled' : '') . '"><a class="page-link" href="?' . http_build_query($prevParams) . '">Previous</a></li>';
+
+    for ($i = 1; $i <= $totalPages; $i++) {
+        $pageParams = $queryParams;
+        $pageParams[$pageParam] = $i;
+        $activeClass = ($i === $currentPage) ? ' active' : '';
+        $html .= '<li class="page-item' . $activeClass . '"><a class="page-link" href="?' . http_build_query($pageParams) . '">' . $i . '</a></li>';
+    }
+
+    $nextParams = $queryParams;
+    $nextParams[$pageParam] = min($totalPages, $currentPage + 1);
+    $html .= '<li class="page-item ' . ($currentPage >= $totalPages ? 'disabled' : '') . '"><a class="page-link" href="?' . http_build_query($nextParams) . '">Next</a></li>';
+    $html .= '</ul></nav>';
+
+    return $html;
+}
+
+$perPage = 10;
+
+$borrowerSearch = trim($_GET['borrower_search'] ?? '');
+$borrowerTypeFilter = $_GET['borrower_type'] ?? '';
+$borrowerSort = $_GET['borrower_sort'] ?? 'borrower_id';
+$borrowerOrder = strtoupper($_GET['borrower_order'] ?? 'DESC');
+$borrowerPage = max(1, (int) ($_GET['borrower_page'] ?? 1));
+
+$allowedBorrowerSort = ['borrower_id', 'borrower_no', 'full_name', 'borrower_type'];
+if (!in_array($borrowerSort, $allowedBorrowerSort, true)) {
+    $borrowerSort = 'borrower_id';
+}
+if (!in_array($borrowerOrder, ['ASC', 'DESC'], true)) {
+    $borrowerOrder = 'DESC';
+}
+
+$borrowerSql = 'SELECT * FROM borrowers WHERE 1=1';
+$borrowerCountSql = 'SELECT COUNT(*) FROM borrowers WHERE 1=1';
+$borrowerParams = [];
+
+if ($borrowerSearch !== '') {
+    $borrowerSql .= ' AND (borrower_no ILIKE :borrower_search OR full_name ILIKE :borrower_search)';
+    $borrowerCountSql .= ' AND (borrower_no ILIKE :borrower_search OR full_name ILIKE :borrower_search)';
+    $borrowerParams[':borrower_search'] = '%' . $borrowerSearch . '%';
+}
+
+if ($borrowerTypeFilter !== '') {
+    $borrowerSql .= ' AND borrower_type = :borrower_type';
+    $borrowerCountSql .= ' AND borrower_type = :borrower_type';
+    $borrowerParams[':borrower_type'] = $borrowerTypeFilter;
+}
+
+$borrowerCountStmt = $pdo->prepare($borrowerCountSql);
+$borrowerCountStmt->execute($borrowerParams);
+$borrowerTotal = (int) $borrowerCountStmt->fetchColumn();
+$borrowerTotalPages = max(1, (int) ceil($borrowerTotal / $perPage));
+$borrowerPage = min($borrowerPage, $borrowerTotalPages);
+
+$allBorrowers = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id DESC")->fetchAll();
+
+$borrowerSql .= ' ORDER BY ' . $borrowerSort . ' ' . $borrowerOrder . ' LIMIT :limit OFFSET :offset';
+$borrowerStmt = $pdo->prepare($borrowerSql);
+foreach ($borrowerParams as $key => $value) {
+    $borrowerStmt->bindValue($key, $value);
+}
+$borrowerStmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$borrowerStmt->bindValue(':offset', ($borrowerPage - 1) * $perPage, PDO::PARAM_INT);
+$borrowerStmt->execute();
+$borrowers = $borrowerStmt->fetchAll();
+
+$equipmentSearch = trim($_GET['eq_search'] ?? '');
+$equipmentSort = $_GET['eq_sort'] ?? 'equipment_id';
+$equipmentOrder = strtoupper($_GET['eq_order'] ?? 'DESC');
+$equipmentPage = max(1, (int) ($_GET['eq_page'] ?? 1));
+
+$allowedEquipmentSort = ['equipment_id', 'property_no', 'equipment_name', 'quantity_available'];
+if (!in_array($equipmentSort, $allowedEquipmentSort, true)) {
+    $equipmentSort = 'equipment_id';
+}
+if (!in_array($equipmentOrder, ['ASC', 'DESC'], true)) {
+    $equipmentOrder = 'DESC';
+}
+
+$equipmentSql = 'SELECT * FROM equipment WHERE 1=1';
+$equipmentCountSql = 'SELECT COUNT(*) FROM equipment WHERE 1=1';
+$equipmentParams = [];
+
+if ($equipmentSearch !== '') {
+    $equipmentSql .= ' AND (property_no ILIKE :eq_search OR equipment_name ILIKE :eq_search)';
+    $equipmentCountSql .= ' AND (property_no ILIKE :eq_search OR equipment_name ILIKE :eq_search)';
+    $equipmentParams[':eq_search'] = '%' . $equipmentSearch . '%';
+}
+
+$equipmentCountStmt = $pdo->prepare($equipmentCountSql);
+$equipmentCountStmt->execute($equipmentParams);
+$equipmentTotal = (int) $equipmentCountStmt->fetchColumn();
+$equipmentTotalPages = max(1, (int) ceil($equipmentTotal / $perPage));
+$equipmentPage = min($equipmentPage, $equipmentTotalPages);
+
+$allEquipments = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id DESC")->fetchAll();
+
+$equipmentSql .= ' ORDER BY ' . $equipmentSort . ' ' . $equipmentOrder . ' LIMIT :limit OFFSET :offset';
+$equipmentStmt = $pdo->prepare($equipmentSql);
+foreach ($equipmentParams as $key => $value) {
+    $equipmentStmt->bindValue($key, $value);
+}
+$equipmentStmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$equipmentStmt->bindValue(':offset', ($equipmentPage - 1) * $perPage, PDO::PARAM_INT);
+$equipmentStmt->execute();
+$equipments = $equipmentStmt->fetchAll();
+
 $txStatusFilter = $_GET['tx_status'] ?? '';
 $txStartDate = $_GET['start_date'] ?? '';
 $txEndDate = $_GET['end_date'] ?? '';
+$txSearch = trim($_GET['tx_search'] ?? '');
+$txPage = max(1, (int) ($_GET['tx_page'] ?? 1));
 
-// Base query for transactions
-$sqlTx = "SELECT t.borrow_id, t.borrow_date, t.due_date, t.status, 
-                 b.full_name, b.borrower_type, 
-                 e.equipment_name, e.property_no, 
+$txSort = $_GET['tx_sort'] ?? 'due_date';
+$txOrder = strtoupper($_GET['tx_order'] ?? 'ASC');
+$allowedTxSort = ['borrow_id', 'due_date', 'status', 'full_name', 'equipment_name'];
+if (!in_array($txSort, $allowedTxSort, true)) {
+    $txSort = 'due_date';
+}
+if (!in_array($txOrder, ['ASC', 'DESC'], true)) {
+    $txOrder = 'ASC';
+}
+
+$sqlTx = "SELECT t.borrow_id, t.borrow_date, t.due_date, t.status,
+                 b.full_name, b.borrower_type,
+                 e.equipment_name, e.property_no,
                  bi.quantity
           FROM borrow_transactions t
           JOIN borrowers b ON t.borrower_id = b.borrower_id
           JOIN borrow_items bi ON t.borrow_id = bi.borrow_id
           JOIN equipment e ON bi.equipment_id = e.equipment_id
           WHERE 1=1";
+$sqlTxCount = "SELECT COUNT(*)
+               FROM borrow_transactions t
+               JOIN borrowers b ON t.borrower_id = b.borrower_id
+               JOIN borrow_items bi ON t.borrow_id = bi.borrow_id
+               JOIN equipment e ON bi.equipment_id = e.equipment_id
+               WHERE 1=1";
 $txParams = [];
 
-// Apply status filter
 if (!empty($txStatusFilter)) {
-    $sqlTx .= " AND t.status = :status";
+    $sqlTx .= ' AND t.status = :status';
+    $sqlTxCount .= ' AND t.status = :status';
     $txParams[':status'] = $txStatusFilter;
 }
 
-// Apply date range filter (based on due date or borrow date)
 if (!empty($txStartDate) && !empty($txEndDate)) {
-    $sqlTx .= " AND t.due_date BETWEEN :start_date AND :end_date";
+    $sqlTx .= ' AND t.due_date BETWEEN :start_date AND :end_date';
+    $sqlTxCount .= ' AND t.due_date BETWEEN :start_date AND :end_date';
     $txParams[':start_date'] = $txStartDate;
     $txParams[':end_date'] = $txEndDate;
 }
 
-$sqlTx .= " ORDER BY t.status ASC, t.due_date ASC";
+if ($txSearch !== '') {
+    $sqlTx .= ' AND (CAST(t.borrow_id AS TEXT) ILIKE :tx_search OR b.full_name ILIKE :tx_search OR e.equipment_name ILIKE :tx_search)';
+    $sqlTxCount .= ' AND (CAST(t.borrow_id AS TEXT) ILIKE :tx_search OR b.full_name ILIKE :tx_search OR e.equipment_name ILIKE :tx_search)';
+    $txParams[':tx_search'] = '%' . $txSearch . '%';
+}
 
+$stmtTxCount = $pdo->prepare($sqlTxCount);
+$stmtTxCount->execute($txParams);
+$txTotal = (int) $stmtTxCount->fetchColumn();
+$txTotalPages = max(1, (int) ceil($txTotal / $perPage));
+$txPage = min($txPage, $txTotalPages);
+
+if ($txSort === 'full_name') {
+    $txSortColumn = 'b.full_name';
+} elseif ($txSort === 'equipment_name') {
+    $txSortColumn = 'e.equipment_name';
+} else {
+    $txSortColumn = 't.' . $txSort;
+}
+
+$sqlTx .= ' ORDER BY ' . $txSortColumn . ' ' . $txOrder . ' LIMIT :limit OFFSET :offset';
 $stmtTx = $pdo->prepare($sqlTx);
-$stmtTx->execute($txParams);
+foreach ($txParams as $key => $value) {
+    $stmtTx->bindValue($key, $value);
+}
+$stmtTx->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmtTx->bindValue(':offset', ($txPage - 1) * $perPage, PDO::PARAM_INT);
+$stmtTx->execute();
 $activeLoans = $stmtTx->fetchAll();
 
+// Backwards compatibility for existing sorting helpers in the rest of the app.
 function getSortParams($defaultCol, $allowedCols)
 {
     $col = $_GET['sort'] ?? $defaultCol;
-    if (!in_array($col, $allowedCols)) {
+    if (!in_array($col, $allowedCols, true)) {
         $col = $defaultCol;
     }
     $order = strtoupper($_GET['order'] ?? 'ASC');
@@ -213,17 +372,5 @@ function getSortParams($defaultCol, $allowedCols)
 
     return ['col' => $col, 'order' => $order, 'nextOrder' => $nextOrder];
 }
-
-// --- 2. APPLY TO BORROWERS ---
-$bSort = getSortParams('borrower_id', ['borrower_id', 'borrower_no', 'full_name', 'borrower_type']);
-$borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY {$bSort['col']} {$bSort['order']}")->fetchAll();
-
-// --- 3. APPLY TO EQUIPMENT ---
-$eSort = getSortParams('equipment_id', ['equipment_id', 'property_no', 'equipment_name', 'quantity_available']);
-$equipments = $pdo->query("SELECT * FROM equipment ORDER BY {$eSort['col']} {$eSort['order']}")->fetchAll();
-
-// --- 4. APPLY TO TRANSACTIONS ---
-$tSort = getSortParams('borrow_id', ['borrow_id', 'full_name', 'equipment_name', 'quantity', 'due_date', 'status']);
-
 
 ?>

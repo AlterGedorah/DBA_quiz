@@ -63,42 +63,56 @@ require('scripts/reportsW7.php');
                         <h5 class="mb-0">Complete Borrowing Report</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Search, Status Filter, Sort Column, Order, and Reset Controls -->
-                        <div class="row g-2 mb-3 align-items-center">
+                        <form method="GET" class="row g-2 mb-3 align-items-center">
+                            <input type="hidden" name="report1_page" value="1">
                             <div class="col-md-4">
-                                <input type="text" id="searchReport1" class="form-control form-control-sm"
-                                    placeholder="Search report...">
+                                <input type="text" name="report1_search" id="searchReport1"
+                                    class="form-control form-control-sm" placeholder="Search report..."
+                                    value="<?= htmlspecialchars($report1Search) ?>">
                             </div>
                             <div class="col-md-3">
-                                <select id="filterStatus1" class="form-select form-select-sm">
+                                <select name="report1_status" id="filterStatus1" class="form-select form-select-sm">
                                     <option value="">All Statuses</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Returned">Returned</option>
-                                    <option value="Overdue">Overdue</option>
-                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Active" <?= ($report1Status === 'Active') ? 'selected' : '' ?>>Active
+                                    </option>
+                                    <option value="Returned" <?= ($report1Status === 'Returned') ? 'selected' : '' ?>>
+                                        Returned</option>
+                                    <option value="Overdue" <?= ($report1Status === 'Overdue') ? 'selected' : '' ?>>Overdue
+                                    </option>
+                                    <option value="Cancelled" <?= ($report1Status === 'Cancelled') ? 'selected' : '' ?>>
+                                        Cancelled</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="sortColumn1" class="form-select form-select-sm">
-                                    <option value="1" selected>Borrower Name</option>
-                                    <option value="2">Equipment</option>
-                                    <option value="3">Qty</option>
-                                    <option value="4">Borrow Date</option>
-                                    <option value="5">Due Date</option>
-                                    <option value="6">Status</option>
+                                <select name="report1_sort" id="sortColumn1" class="form-select form-select-sm">
+                                    <option value="borrower_no" <?= ($report1Sort === 'borrower_no') ? 'selected' : '' ?>>
+                                        ID #</option>
+                                    <option value="full_name" <?= ($report1Sort === 'full_name') ? 'selected' : '' ?>>
+                                        Borrower Name</option>
+                                    <option value="equipment_name" <?= ($report1Sort === 'equipment_name') ? 'selected' : '' ?>>Equipment</option>
+                                    <option value="quantity" <?= ($report1Sort === 'quantity') ? 'selected' : '' ?>>Qty
+                                    </option>
+                                    <option value="borrow_date" <?= ($report1Sort === 'borrow_date') ? 'selected' : '' ?>>
+                                        Borrow Date</option>
+                                    <option value="due_date" <?= ($report1Sort === 'due_date') ? 'selected' : '' ?>>Due
+                                        Date</option>
+                                    <option value="status" <?= ($report1Sort === 'status') ? 'selected' : '' ?>>Status
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="sortDirection1" class="form-select form-select-sm">
-                                    <option value="asc">ASC</option>
-                                    <option value="desc">DESC</option>
+                                <select name="report1_order" id="sortDirection1" class="form-select form-select-sm">
+                                    <option value="ASC" <?= ($report1Order === 'ASC') ? 'selected' : '' ?>>ASC</option>
+                                    <option value="DESC" <?= ($report1Order === 'DESC') ? 'selected' : '' ?>>DESC</option>
                                 </select>
                             </div>
-                            <div class="col-md-1">
-                                <button type="button" id="resetReport1"
-                                    class="btn btn-sm btn-outline-secondary w-100">Reset</button>
+                            <div class="col-md-1 d-flex gap-1">
+                                <button type="submit" class="btn btn-sm btn-primary w-100">Apply</button>
                             </div>
-                        </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <a href="week7.php#report1" class="btn btn-sm btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
 
                         <div class="table-responsive table-container border rounded">
                             <table class="table table-sm table-hover align-middle mb-0" id="tableReport1">
@@ -136,6 +150,7 @@ require('scripts/reportsW7.php');
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($report1Page, $report1TotalPages, 'report1_page', $_GET) ?>
                     </div>
                 </div>
             </div>
@@ -199,20 +214,28 @@ require('scripts/reportsW7.php');
                         <h5 class="mb-0">Borrowers Without Transactions</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-2 mb-3">
+                        <form method="GET" class="row g-2 mb-3">
+                            <input type="hidden" name="txless_page" value="1">
                             <div class="col-md-8">
-                                <input type="text" id="searchReport3" class="form-control form-control-sm"
-                                    placeholder="Search borrower...">
+                                <input type="text" name="txless_search" id="searchReport3"
+                                    class="form-control form-control-sm" placeholder="Search borrower..."
+                                    value="<?= htmlspecialchars($txlessSearch) ?>">
                             </div>
                             <div class="col-md-4">
-                                <select id="filterType3" class="form-select form-select-sm">
+                                <select name="txless_type" id="filterType3" class="form-select form-select-sm">
                                     <option value="">All Types</option>
-                                    <option value="Student">Student</option>
-                                    <option value="Faculty">Faculty</option>
-                                    <option value="Staff">Staff</option>
+                                    <option value="Student" <?= ($txlessType === 'Student') ? 'selected' : '' ?>>Student
+                                    </option>
+                                    <option value="Faculty" <?= ($txlessType === 'Faculty') ? 'selected' : '' ?>>Faculty
+                                    </option>
+                                    <option value="Staff" <?= ($txlessType === 'Staff') ? 'selected' : '' ?>>Staff</option>
                                 </select>
                             </div>
-                        </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-sm btn-warning text-dark">Apply</button>
+                                <a href="week7.php#report3" class="btn btn-sm btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
 
                         <div class="table-responsive table-container border rounded">
                             <table class="table table-sm table-hover align-middle mb-0" id="tableReport3">
@@ -242,6 +265,7 @@ require('scripts/reportsW7.php');
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($txlessPage, $txlessTotalPages, 'txless_page', $_GET) ?>
                     </div>
                 </div>
             </div>
@@ -345,10 +369,45 @@ require('scripts/reportsW7.php');
                         <h5 class="mb-0">Combined Borrower Activity</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-12">
-                                <input type="text" id="searchReport5" class="form-control form-control-sm"
-                                    placeholder="Search union logs...">
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <form method="GET" class="row g-2 align-items-center">
+                                    <input type="hidden" name="union_page" value="1">
+                                    <div class="col-12">
+                                        <label class="form-label small mb-1">UNION Search</label>
+                                        <input type="text" name="union_search" id="searchReport5Union"
+                                            class="form-control form-control-sm" placeholder="Search union logs..."
+                                            value="<?= htmlspecialchars($unionSearch) ?>">
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label small mb-1">Filter</label>
+                                        <select name="union_filter" class="form-select form-select-sm">
+                                            <option value="" <?= ($unionFilter === '') ? 'selected' : '' ?>>All</option>
+                                            <option value="Active Borrower" <?= ($unionFilter === 'Active Borrower') ? 'selected' : '' ?>>Active Borrower</option>
+                                            <option value="Registered Member" <?= ($unionFilter === 'Registered Member') ? 'selected' : '' ?>>Registered Member</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label small mb-1">Sort by</label>
+                                        <select name="union_sort" class="form-select form-select-sm">
+                                            <option value="classification" <?= ($unionSort === 'classification') ? 'selected' : '' ?>>Classification</option>
+                                            <option value="full_name" <?= ($unionSort === 'full_name') ? 'selected' : '' ?>>Member Name</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label small mb-1">Order</label>
+                                        <select name="union_order" class="form-select form-select-sm">
+                                            <option value="ASC" <?= ($unionOrder === 'ASC') ? 'selected' : '' ?>>Ascending
+                                            </option>
+                                            <option value="DESC" <?= ($unionOrder === 'DESC') ? 'selected' : '' ?>>
+                                                Descending</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-sm btn-info text-dark">Apply</button>
+                                        <a href="week7.php#report5" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                    </div>
+                                </form>
                             </div>
                         </div>
 
@@ -364,14 +423,60 @@ require('scripts/reportsW7.php');
                                 <tbody>
                                     <?php foreach ($unionReport as $u): ?>
                                         <tr>
-                                            <td><?= $u['classification'] ?></td>
+                                            <td><?= htmlspecialchars($u['classification']) ?></td>
                                             <td><?= htmlspecialchars($u['full_name']) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($unionReport)): ?>
+                                        <tr>
+                                            <td colspan="2" class="text-center py-3 text-muted">No union results found.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
-
+                        <?= renderPagination($unionPage, $unionTotalPages, 'union_page', $_GET) ?>
+                        <div class="col-12">
+                            <form method="GET" class="row g-2 align-items-center">
+                                <input type="hidden" name="union_all_page" value="1">
+                                <div class="col-12">
+                                    <label class="form-label small mb-1">UNION ALL Search</label>
+                                    <input type="text" name="union_all_search" id="searchReport5UnionAll"
+                                        class="form-control form-control-sm" placeholder="Search union all logs..."
+                                        value="<?= htmlspecialchars($unionAllSearch) ?>">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Filter</label>
+                                    <select name="union_all_filter" class="form-select form-select-sm">
+                                        <option value="" <?= ($unionAllFilter === '') ? 'selected' : '' ?>>All</option>
+                                        <option value="Student Account" <?= ($unionAllFilter === 'Student Account') ? 'selected' : '' ?>>Student Account</option>
+                                        <option value="Faculty / Staff Account" <?= ($unionAllFilter === 'Faculty / Staff Account') ? 'selected' : '' ?>>Faculty / Staff Account</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Sort by</label>
+                                    <select name="union_all_sort" class="form-select form-select-sm">
+                                        <option value="user_tier" <?= ($unionAllSort === 'user_tier') ? 'selected' : '' ?>>
+                                            User Tier</option>
+                                        <option value="full_name" <?= ($unionAllSort === 'full_name') ? 'selected' : '' ?>>
+                                            Member Name</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label small mb-1">Order</label>
+                                    <select name="union_all_order" class="form-select form-select-sm">
+                                        <option value="ASC" <?= ($unionAllOrder === 'ASC') ? 'selected' : '' ?>>Ascending
+                                        </option>
+                                        <option value="DESC" <?= ($unionAllOrder === 'DESC') ? 'selected' : '' ?>>
+                                            Descending</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end gap-2">
+                                    <button type="submit" class="btn btn-sm btn-info text-dark">Apply</button>
+                                    <a href="week7.php#report5" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                </div>
+                            </form>
+                        </div>
                         <p class="text-muted small mb-2">UNION ALL Report:</p>
                         <div class="table-responsive border rounded" style="max-height: 220px;">
                             <table class="table table-sm mb-0" id="tableReport5UnionAll">
@@ -384,13 +489,20 @@ require('scripts/reportsW7.php');
                                 <tbody>
                                     <?php foreach ($unionAllReport as $ua): ?>
                                         <tr>
-                                            <td><?= $ua['user_tier'] ?></td>
+                                            <td><?= htmlspecialchars($ua['user_tier']) ?></td>
                                             <td><?= htmlspecialchars($ua['full_name']) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($unionAllReport)): ?>
+                                        <tr>
+                                            <td colspan="2" class="text-center py-3 text-muted">No union-all results found.
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($unionAllPage, $unionAllTotalPages, 'union_all_page', $_GET) ?>
                     </div>
                 </div>
             </div>
@@ -404,7 +516,6 @@ require('scripts/reportsW7.php');
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // General Search & Filter Handler for Reports 2, 4, 6
             function setupSimpleSearch(inputId, tableId) {
                 const searchInput = document.getElementById(inputId);
                 const table = document.getElementById(tableId);
@@ -421,141 +532,6 @@ require('scripts/reportsW7.php');
             setupSimpleSearch("searchReport2", "tableReport2");
             setupSimpleSearch("searchReport4", "tableReport4");
             setupSimpleSearch("searchReport6", "tableReport6");
-
-            // Report 1: Search + Status Dropdown Filter
-            const search1 = document.getElementById("searchReport1");
-            const filterStatus1 = document.getElementById("filterStatus1");
-            const table1 = document.getElementById("tableReport1");
-
-            function filterReport1() {
-                if (!table1) return;
-                const query = search1 ? search1.value.toLowerCase().trim() : "";
-                const statusVal = filterStatus1 ? filterStatus1.value.toLowerCase() : "";
-
-                table1.querySelectorAll("tbody tr").forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    const statusBadge = row.querySelector(".status-badge");
-                    const statusText = statusBadge ? statusBadge.innerText.toLowerCase() : "";
-
-                    const matchesSearch = text.includes(query);
-                    const matchesStatus = !statusVal || statusText === statusVal;
-
-                    row.style.display = matchesSearch && matchesStatus ? "" : "none";
-                });
-            }
-            if (search1) search1.addEventListener("input", filterReport1);
-            if (filterStatus1) filterStatus1.addEventListener("change", filterReport1);
-
-            // Report 3: Search + Borrower Type Dropdown Filter
-            const search3 = document.getElementById("searchReport3");
-            const filterType3 = document.getElementById("filterType3");
-            const table3 = document.getElementById("tableReport3");
-
-            function filterReport3() {
-                if (!table3) return;
-                const query = search3 ? search3.value.toLowerCase().trim() : "";
-                const typeVal = filterType3 ? filterType3.value.toLowerCase() : "";
-
-                table3.querySelectorAll("tbody tr").forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    const typeBadge = row.querySelector(".type-badge");
-                    const typeText = typeBadge ? typeBadge.innerText.toLowerCase() : "";
-
-                    const matchesSearch = text.includes(query);
-                    const matchesType = !typeVal || typeText === typeVal;
-
-                    row.style.display = matchesSearch && matchesType ? "" : "none";
-                });
-            }
-            if (search3) search3.addEventListener("input", filterReport3);
-            if (filterType3) filterType3.addEventListener("change", filterReport3);
-
-            // Report 5: Combined Union & Union All Search
-            const unionSearch = document.getElementById("searchReport5");
-            if (unionSearch) {
-                unionSearch.addEventListener("input", function () {
-                    const query = this.value.toLowerCase().trim();
-                    ["tableReport5Union", "tableReport5UnionAll"].forEach(tId => {
-                        const tbl = document.getElementById(tId);
-                        if (tbl) {
-                            tbl.querySelectorAll("tbody tr").forEach(row => {
-                                row.style.display = row.innerText.toLowerCase().includes(query) ? "" : "none";
-                            });
-                        }
-                    });
-                });
-            }
-        });
-        document.addEventListener("DOMContentLoaded", function () {
-            const search1 = document.getElementById("searchReport1");
-            const filterStatus1 = document.getElementById("filterStatus1");
-            const sortCol1 = document.getElementById("sortColumn1");
-            const sortDir1 = document.getElementById("sortDirection1");
-            const reset1 = document.getElementById("resetReport1");
-            const table1 = document.getElementById("tableReport1");
-
-            function filterAndSortReport1() {
-                if (!table1) return;
-                const query = search1 ? search1.value.toLowerCase().trim() : "";
-                const statusVal = filterStatus1 ? filterStatus1.value.toLowerCase() : "";
-                const colIndex = sortCol1 ? parseInt(sortCol1.value) : 1;
-                const direction = sortDir1 ? sortDir1.value : "asc";
-
-                const tbody = table1.querySelector("tbody");
-                let rows = Array.from(tbody.querySelectorAll("tr"));
-
-                // 1. Filter rows
-                rows.forEach(row => {
-                    if (row.cells.length <= 1) return; // Skip empty message rows
-                    const text = row.innerText.toLowerCase();
-                    const statusBadge = row.querySelector(".status-badge");
-                    const statusText = statusBadge ? statusBadge.innerText.toLowerCase() : "";
-
-                    const matchesSearch = text.includes(query);
-                    const matchesStatus = !statusVal || statusText === statusVal;
-
-                    row.style.display = matchesSearch && matchesStatus ? "" : "none";
-                });
-
-                // 2. Sort rows based on dropdown selection
-                rows.sort((rowA, rowB) => {
-                    if (rowA.cells.length <= colIndex || rowB.cells.length <= colIndex) return 0;
-                    const valA = rowA.cells[colIndex].innerText.trim().toLowerCase();
-                    const valB = rowB.cells[colIndex].innerText.trim().toLowerCase();
-
-                    const numA = parseFloat(valA);
-                    const numB = parseFloat(valB);
-
-                    let comparison = 0;
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        comparison = numA - numB;
-                    } else {
-                        comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: "base" });
-                    }
-
-                    return direction === "asc" ? comparison : -comparison;
-                });
-
-                // Re-append sorted rows
-                rows.forEach(row => tbody.appendChild(row));
-            }
-
-            // Attach event listeners
-            if (search1) search1.addEventListener("input", filterAndSortReport1);
-            if (filterStatus1) filterStatus1.addEventListener("change", filterAndSortReport1);
-            if (sortCol1) sortCol1.addEventListener("change", filterAndSortReport1);
-            if (sortDir1) sortDir1.addEventListener("change", filterAndSortReport1);
-
-            // Reset button handler
-            if (reset1) {
-                reset1.addEventListener("click", function () {
-                    if (search1) search1.value = "";
-                    if (filterStatus1) filterStatus1.value = "";
-                    if (sortCol1) sortCol1.value = "1";
-                    if (sortDir1) sortDir1.value = "asc";
-                    filterAndSortReport1();
-                });
-            }
         });
     </script>
 </body>

@@ -1,7 +1,4 @@
 <?php
-$borrowers = $pdo->query("SELECT * FROM borrowers ORDER BY borrower_id DESC")->fetchAll();
-$equipments = $pdo->query("SELECT * FROM equipment ORDER BY equipment_id DESC")->fetchAll();
-
 // Borrower Type Summary
 $borrowerTypeSummary = $pdo->query("
     SELECT borrower_type, COUNT(*) as total_count 

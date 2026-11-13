@@ -127,33 +127,38 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </form>
                     </div>
                     <div class="col-lg-9">
-                        <div class="row g-2 mb-3">
+                        <form method="GET" class="row g-2 mb-3 align-items-end">
+                            <input type="hidden" name="borrower_page" value="1">
                             <div class="col-md-5">
-                                <input type="text" id="borrowerSearch" class="form-control form-control-sm"
-                                    placeholder="Type to search ID or Name...">
+                                <input type="text" name="borrower_search" id="borrowerSearch" class="form-control form-control-sm"
+                                    placeholder="Type to search ID or Name..." value="<?= htmlspecialchars($borrowerSearch) ?>">
                             </div>
                             <div class="col-md-3">
-                                <select id="borrowerTypeFilter" class="form-select form-select-sm">
+                                <select name="borrower_type" id="borrowerTypeFilter" class="form-select form-select-sm">
                                     <option value="">All Types</option>
-                                    <option value="Student">Student</option>
-                                    <option value="Faculty">Faculty</option>
-                                    <option value="Staff">Staff</option>
+                                    <option value="Student" <?= ($borrowerTypeFilter === 'Student') ? 'selected' : '' ?>>Student</option>
+                                    <option value="Faculty" <?= ($borrowerTypeFilter === 'Faculty') ? 'selected' : '' ?>>Faculty</option>
+                                    <option value="Staff" <?= ($borrowerTypeFilter === 'Staff') ? 'selected' : '' ?>>Staff</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="borrowerSortColumn" class="form-select form-select-sm" title="Sort By">
-                                    <option value="0">ID Number</option>
-                                    <option value="1" selected>Name</option>
-                                    <option value="2">Type</option>
+                                <select name="borrower_sort" id="borrowerSortColumn" class="form-select form-select-sm" title="Sort By">
+                                    <option value="borrower_no" <?= ($borrowerSort === 'borrower_no') ? 'selected' : '' ?>>ID Number</option>
+                                    <option value="full_name" <?= ($borrowerSort === 'full_name') ? 'selected' : '' ?>>Name</option>
+                                    <option value="borrower_type" <?= ($borrowerSort === 'borrower_type') ? 'selected' : '' ?>>Type</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
-                                <select id="borrowerSortDirection" class="form-select form-select-sm" title="Order">
-                                    <option value="asc">ASC</option>
-                                    <option value="desc">DESC</option>
+                                <select name="borrower_order" id="borrowerSortDirection" class="form-select form-select-sm" title="Order">
+                                    <option value="ASC" <?= ($borrowerOrder === 'ASC') ? 'selected' : '' ?>>ASC</option>
+                                    <option value="DESC" <?= ($borrowerOrder === 'DESC') ? 'selected' : '' ?>>DESC</option>
                                 </select>
                             </div>
-                        </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                                <a href="index.php#nav-borrowers" class="btn btn-sm btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
 
                         <div class="table-responsive table-container border rounded">
                             <table class="table table-sm table-hover align-middle mb-0" id="borrowersTable">
@@ -186,9 +191,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($borrowers)): ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3 text-muted">No borrowers match your filters.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($borrowerPage, $borrowerTotalPages, 'borrower_page', $_GET) ?>
                     </div>
                 </div>
             </div>
@@ -229,35 +240,36 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </form>
                     </div>
                     <div class="col-lg-9">
-                        <div class="row g-2 mb-3 align-items-end" id="eqFilterContainer">
+                        <form method="GET" class="row g-2 mb-3 align-items-end" id="eqFilterContainer">
+                            <input type="hidden" name="eq_page" value="1">
                             <div class="col-md-4">
                                 <label class="form-label small mb-1">Search Property No / Name</label>
-                                <input type="text" id="eqSearchInput" class="form-control form-control-sm"
-                                    placeholder="Search keyword...">
+                                <input type="text" name="eq_search" id="eqSearchInput" class="form-control form-control-sm"
+                                    placeholder="Search keyword..." value="<?= htmlspecialchars($equipmentSearch) ?>">
                             </div>
 
                             <div class="col-md-3">
                                 <label class="form-label small mb-1">Sort By</label>
-                                <select id="eqSortColumn" class="form-select form-select-sm">
-                                    <option value="0">Property No</option>
-                                    <option value="1" selected>Equipment Name</option>
-                                    <option value="2">Quantity Available</option>
+                                <select name="eq_sort" id="eqSortColumn" class="form-select form-select-sm">
+                                    <option value="property_no" <?= ($equipmentSort === 'property_no') ? 'selected' : '' ?>>Property No</option>
+                                    <option value="equipment_name" <?= ($equipmentSort === 'equipment_name') ? 'selected' : '' ?>>Equipment Name</option>
+                                    <option value="quantity_available" <?= ($equipmentSort === 'quantity_available') ? 'selected' : '' ?>>Quantity Available</option>
                                 </select>
                             </div>
 
                             <div class="col-md-2">
                                 <label class="form-label small mb-1">Order</label>
-                                <select id="eqSortDirection" class="form-select form-select-sm">
-                                    <option value="asc">ASC</option>
-                                    <option value="desc">DESC</option>
+                                <select name="eq_order" id="eqSortDirection" class="form-select form-select-sm">
+                                    <option value="ASC" <?= ($equipmentOrder === 'ASC') ? 'selected' : '' ?>>ASC</option>
+                                    <option value="DESC" <?= ($equipmentOrder === 'DESC') ? 'selected' : '' ?>>DESC</option>
                                 </select>
                             </div>
 
                             <div class="col-md-3 d-flex gap-1">
-                                <button type="button" id="eqResetBtn"
-                                    class="btn btn-sm btn-outline-secondary w-100">Reset</button>
+                                <button type="submit" class="btn btn-sm btn-success w-100">Apply</button>
+                                <a href="index.php#nav-inventory" class="btn btn-sm btn-outline-secondary">Reset</a>
                             </div>
-                        </div>
+                        </form>
                         <div class="table-responsive table-container border rounded">
 
                             <table class="table table-sm table-hover align-middle mb-0">
@@ -308,9 +320,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($equipments)): ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3 text-muted">No equipment matches your search.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($equipmentPage, $equipmentTotalPages, 'eq_page', $_GET) ?>
                     </div>
                 </div>
             </div>
@@ -332,7 +350,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <label class="form-label small fw-bold">Select Borrower</label>
                             <select name="borrower_id" class="form-select" required>
                                 <option value="" disabled selected>Choose...</option>
-                                <?php foreach ($borrowers as $b): ?>
+                                <?php foreach ($allBorrowers as $b): ?>
                                     <option value="<?= $b['borrower_id'] ?>"><?= htmlspecialchars($b['full_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -342,7 +360,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <label class="form-label small fw-bold">Select Equipment</label>
                             <select name="equipment_id" id="eqSelect" class="form-select" required>
                                 <option value="" data-stock="0" disabled selected>Choose Item (In Stock)...</option>
-                                <?php foreach ($equipments as $e): ?>
+                                <?php foreach ($allEquipments as $e): ?>
                                     <?php if ($e['quantity_available'] > 0): ?>
                                         <option value="<?= $e['equipment_id'] ?>" data-stock="<?= $e['quantity_available'] ?>">
                                             <?= htmlspecialchars($e['equipment_name']) ?> (<?= $e['quantity_available'] ?> left)
@@ -382,7 +400,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($borrowers as $b): ?>
+                                    <?php foreach ($allBorrowers as $b): ?>
                                         <tr>
                                             <td>
                                                 <?= htmlspecialchars($b['borrower_no']) ?>
@@ -418,7 +436,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     </tr>
                                 </thead>
                                 <tbody id="eqClientTableBody">
-                                    <?php foreach ($equipments as $e): ?>
+                                    <?php foreach ($allEquipments as $e): ?>
                                         <tr>
                                             <td>
                                                 <?= htmlspecialchars($e['property_no']) ?>
@@ -578,17 +596,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
                     <div class="col-lg-9">
                         <form method="GET" class="row g-2 mb-3 align-items-end">
+                            <input type="hidden" name="tx_page" value="1">
                             <div class="col-md-3">
                                 <label class="form-label small">Status Filter</label>
                                 <select name="tx_status" class="form-select form-select-sm">
                                     <option value="">All Statuses</option>
-                                    <option value="Pending" <?= ($txStatusFilter ?? '') === 'Pending' ? 'selected' : '' ?>>
-                                        Pending</option>
-                                    <option value="Active" <?= ($txStatusFilter ?? '') === 'Active' ? 'selected' : '' ?>>
-                                        Active</option>
-                                    <option value="Overdue" <?= ($txStatusFilter ?? '') === 'Overdue' ? 'selected' : '' ?>>
-                                        Overdue</option>
+                                    <option value="Pending" <?= ($txStatusFilter ?? '') === 'Pending' ? 'selected' : '' ?>>Pending</option>
+                                    <option value="Active" <?= ($txStatusFilter ?? '') === 'Active' ? 'selected' : '' ?>>Active</option>
+                                    <option value="Overdue" <?= ($txStatusFilter ?? '') === 'Overdue' ? 'selected' : '' ?>>Overdue</option>
                                     <option value="Returned" <?= ($txStatusFilter ?? '') === 'Returned' ? 'selected' : '' ?>>Returned</option>
+                                    <option value="Cancelled" <?= ($txStatusFilter ?? '') === 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -601,22 +618,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <input type="date" name="end_date" class="form-control form-control-sm"
                                     value="<?= htmlspecialchars($txEndDate ?? '') ?>">
                             </div>
-                            <div class="col-md-3 d-flex gap-1">
-                                <button type="submit"
-                                    class="btn btn-sm btn-info text-dark w-100 fw-bold">Filter</button>
-                                <a href="<?= strtok($_SERVER["REQUEST_URI"], '?') ?>"
-                                    class="btn btn-sm btn-outline-secondary">Reset</a>
+                            <div class="col-md-3">
+                                <label class="form-label small">Search</label>
+                                <input type="text" name="tx_search" class="form-control form-control-sm"
+                                    placeholder="Borrower / item / tx #" value="<?= htmlspecialchars($txSearch) ?>">
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-sm btn-info text-dark fw-bold">Filter</button>
+                                <a href="index.php#nav-borrRec" class="btn btn-sm btn-outline-secondary">Reset</a>
                             </div>
                         </form>
-                        <input type="text" id="txClientSearch" class="form-control form-control-sm mb-2"
-                            placeholder="Search transactions...">
-                        <select id="txStatusFilter" class="form-select form-select-sm mb-3">
-                            <option value="">All Statuses</option>
-                            <option value="Active">Active</option>
-                            <option value="Returned">Returned</option>
-                            <option value="Overdue">Overdue</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
                         <div class="table-responsive table-container border rounded">
                             <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="table-dark">
@@ -657,13 +668,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     <?php endforeach; ?>
                                     <?php if (empty($activeLoans)): ?>
                                         <tr>
-                                            <td colspan="7" class="text-center py-3 text-muted">No transactions found
-                                                matching filters.</td>
+                                            <td colspan="7" class="text-center py-3 text-muted">No transactions found matching filters.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?= renderPagination($txPage, $txTotalPages, 'tx_page', $_GET) ?>
                     </div>
                 </div>
             </div>
