@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // --- SECTION 3: CHECKOUT (BORROW EQUIPMENT) ---
         elseif ($action === 'checkout_equipment') {
-            $pdo->beginTransaction();
+            $pdo->exec('BEGIN;');
             $borrowerId = (int) $_POST['borrower_id'];
             $dueDate = $_POST['due_date'];
 
@@ -116,13 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtEq->execute([':qty' => $qty, ':id' => $eqId]);
             }
 
-            $pdo->commit();
+            $pdo->exec('COMMIT;');
             $success = "Equipment checked out successfully with " . count($requestedByEquipment) . " item(s) (Status: Active).";
         }
 
         // --- SECTION 4: MANAGE LOAN (RETURN / EXTEND / STATUS CHANGE) ---
         elseif ($action === 'manage_loan') {
-            $pdo->beginTransaction();
+            $pdo->exec('BEGIN;');
             $txId = (int) $_POST['borrow_id'];
             $newStatus = $_POST['status'];
             $newDueDate = $_POST['due_date'];
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            $pdo->commit();
+            $pdo->exec('COMMIT;');
             $success = "Transaction updated and inventory synchronized.";
         }
 
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
-            $pdo->rollBack();
+            $pdo->exec('ROLLBACK;');
         }
         if (strpos($e->getMessage(), 'Inventory Error:') !== false || strpos($e->getMessage(), 'Selected equipment') !== false) {
             $error = $e->getMessage();

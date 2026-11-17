@@ -196,7 +196,7 @@ require('scripts/reportsW7.php');
                                                 <th>Equipment</th>
                                                 <th>Total Qty</th>
                                                 <th>Tx Count</th>
-                                                <th>Avg</th>
+                                                <th>Avg Duration Of Borrowing</th>
                                                 <th>Min</th>
                                                 <th>Max</th>
                                             </tr>
@@ -208,7 +208,7 @@ require('scripts/reportsW7.php');
                                                     <td><?= htmlspecialchars($r['equipment_name']) ?></td>
                                                     <td class="fw-bold text-success"><?= (int) $r['total_qty_borrowed'] ?></td>
                                                     <td><?= (int) $r['transaction_count'] ?></td>
-                                                    <td><?= $r['avg_qty'] ?></td>
+                                                    <td><?= $r['avg_planned_duration_days'] ?></td>
                                                     <td><?= (int) $r['min_qty'] ?></td>
                                                     <td><?= (int) $r['max_qty'] ?></td>
                                                 </tr>
@@ -559,7 +559,7 @@ require('scripts/reportsW7.php');
                 });
             }
 
-            
+
         });
     </script>
 </body>

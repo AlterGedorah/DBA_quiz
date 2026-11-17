@@ -67,7 +67,7 @@ if (!in_array($report1Sort, $allowedReport1Sort, true)) {
 }
 
 $report1Sql = "
-    SELECT 
+    SELECT
         b.borrower_no,
         INITCAP(b.full_name) AS full_name,
         INITCAP(e.equipment_name) AS equipment_name,
@@ -274,7 +274,7 @@ $report2BaseSql = "
         INITCAP(e.equipment_name) AS equipment_name,
         COALESCE(SUM(bi.quantity), 0) AS total_qty_borrowed,
         COUNT(DISTINCT t.borrow_id) AS transaction_count,
-        ROUND(COALESCE(AVG(bi.quantity), 0), 2) AS avg_qty,
+        ROUND(AVG((t.due_date - t.borrow_date)::NUMERIC), 1) AS avg_planned_duration_days,
         COALESCE(MIN(bi.quantity), 0) AS min_qty,
         COALESCE(MAX(bi.quantity), 0) AS max_qty
     FROM equipment e
@@ -349,7 +349,7 @@ $report4Stmt->bindValue(':offset', ($report4Page - 1) * $perPage, PDO::PARAM_INT
 $report4Stmt->execute();
 $equipmentWithoutHistory = $report4Stmt->fetchAll();
 
-// Monthly Borrowing Report 
+// Monthly Borrowing Report
 $monthlyPage = max(1, (int) ($_GET['monthly_page'] ?? 1));
 $monthlySearch = trim($_GET['monthly_search'] ?? '');
 
