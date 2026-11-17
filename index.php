@@ -618,6 +618,51 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <div class="card border-success h-100 shadow-sm">
                                 <div class="card-header bg-success text-white fw-bold">Grouped Analysis (2+ Loans)</div>
                                 <div class="card-body p-0">
+                                    <div class="p-3 border-bottom">
+                                        <form method="GET" class="row g-2 align-items-end">
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1">Search</label>
+                                                <input type="text" name="grouped_analysis_search" class="form-control form-control-sm"
+                                                    placeholder="Borrower / type / tx #" value="<?= htmlspecialchars($groupedAnalysisSearch ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Borrower Type</label>
+                                                <select name="grouped_analysis_type" class="form-select form-select-sm">
+                                                    <option value="">All Types</option>
+                                                    <option value="Student" <?= (($groupedAnalysisType ?? '') === 'Student') ? 'selected' : '' ?>>Student</option>
+                                                    <option value="Faculty" <?= (($groupedAnalysisType ?? '') === 'Faculty') ? 'selected' : '' ?>>Faculty</option>
+                                                    <option value="Staff" <?= (($groupedAnalysisType ?? '') === 'Staff') ? 'selected' : '' ?>>Staff</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Min Loans</label>
+                                                <select name="grouped_analysis_min_loans" class="form-select form-select-sm">
+                                                    <option value="2" <?= (($groupedAnalysisMinLoans ?? 2) == 2) ? 'selected' : '' ?>>2+</option>
+                                                    <option value="3" <?= (($groupedAnalysisMinLoans ?? 2) == 3) ? 'selected' : '' ?>>3+</option>
+                                                    <option value="5" <?= (($groupedAnalysisMinLoans ?? 2) == 5) ? 'selected' : '' ?>>5+</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small mb-1">Sort By</label>
+                                                <select name="grouped_analysis_sort" class="form-select form-select-sm">
+                                                    <option value="transaction_count" <?= (($groupedAnalysisSort ?? 'transaction_count') === 'transaction_count') ? 'selected' : '' ?>>Loans</option>
+                                                    <option value="full_name" <?= (($groupedAnalysisSort ?? 'transaction_count') === 'full_name') ? 'selected' : '' ?>>Name</option>
+                                                    <option value="borrower_type" <?= (($groupedAnalysisSort ?? 'transaction_count') === 'borrower_type') ? 'selected' : '' ?>>Type</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <label class="form-label small mb-1">Order</label>
+                                                <select name="grouped_analysis_order" class="form-select form-select-sm">
+                                                    <option value="DESC" <?= (($groupedAnalysisOrder ?? 'DESC') === 'DESC') ? 'selected' : '' ?>>Desc</option>
+                                                    <option value="ASC" <?= (($groupedAnalysisOrder ?? 'DESC') === 'ASC') ? 'selected' : '' ?>>Asc</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12 d-flex justify-content-end gap-2">
+                                                <button type="submit" class="btn btn-sm btn-success">Apply</button>
+                                                <a href="index.php#nav-borrRec" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                            </div>
+                                        </form>
+                                    </div>
                                     <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
                                         <table class="table table-sm table-striped mb-0 align-middle">
                                             <thead class="table-light sticky-top">
@@ -641,6 +686,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
+                                                <?php if (empty($groupedBorrowingAnalysis)): ?>
+                                                    <tr>
+                                                        <td colspan="3" class="text-center py-3 text-muted">No borrowers match the selected filters.</td>
+                                                    </tr>
+                                                <?php endif; ?>
                                             </tbody>
                                         </table>
                                     </div>
