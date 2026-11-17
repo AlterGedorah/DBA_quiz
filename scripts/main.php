@@ -198,18 +198,24 @@ function renderPagination($currentPage, $totalPages, $pageParam, $queryParams = 
     $totalPages = max(1, (int) $totalPages);
     $currentPage = min($currentPage, $totalPages);
 
-    $html = '<nav aria-label="Pagination"><ul class="pagination pagination-sm justify-content-center mb-0 mt-3">';
+    $queryParams = array_filter($queryParams, static function ($key) use ($pageParam) {
+        return $key !== $pageParam;
+    }, ARRAY_FILTER_USE_KEY);
+
+    $html = '<nav aria-label="Pagination"><ul class="pagination pagination-sm justify-content-center mb-0 mt-3 align-items-center">';
 
     $prevParams = $queryParams;
     $prevParams[$pageParam] = max(1, $currentPage - 1);
     $html .= '<li class="page-item ' . ($currentPage <= 1 ? 'disabled' : '') . '"><a class="page-link" href="?' . http_build_query($prevParams) . '">Previous</a></li>';
 
-    for ($i = 1; $i <= $totalPages; $i++) {
-        $pageParams = $queryParams;
-        $pageParams[$pageParam] = $i;
-        $activeClass = ($i === $currentPage) ? ' active' : '';
-        $html .= '<li class="page-item' . $activeClass . '"><a class="page-link" href="?' . http_build_query($pageParams) . '">' . $i . '</a></li>';
+    $html .= '<li class="page-item"><form method="GET" class="d-flex align-items-center gap-2 px-2 mb-0" style="margin: 0;">';
+    foreach ($queryParams as $key => $value) {
+        $html .= '<input type="hidden" name="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '">';
     }
+    $html .= '<input type="number" name="' . htmlspecialchars($pageParam, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars((string) $currentPage, ENT_QUOTES, 'UTF-8') . '" min="1" max="' . (int) $totalPages . '" class="form-control form-control-sm" style="width: 72px; text-align: center;">';
+    $html .= '<span class="text-muted small">/ ' . (int) $totalPages . '</span>';
+    $html .= '<button type="submit" class="btn btn-sm btn-outline-secondary">Go</button>';
+    $html .= '</form></li>';
 
     $nextParams = $queryParams;
     $nextParams[$pageParam] = min($totalPages, $currentPage + 1);
