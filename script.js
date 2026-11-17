@@ -23,6 +23,21 @@ document.addEventListener("DOMContentLoaded", function () {
     newTxDate.min = new Date().toISOString().split("T")[0];
   }
 
+  const borrowerLookupInput = document.getElementById("borrowerLookup");
+  const selectedBorrowerIdInput = document.getElementById("selectedBorrowerId");
+  if (borrowerLookupInput && selectedBorrowerIdInput) {
+    const borrowerOptions = Array.from(document.querySelectorAll("#borrowerSearchList option"));
+    const borrowerIdByName = new Map(
+      borrowerOptions.map((option) => [option.value.trim(), option.dataset.borrowerId]),
+    );
+
+    borrowerLookupInput.addEventListener("change", function () {
+      const selectedName = borrowerLookupInput.value.trim();
+      const matchedId = borrowerIdByName.get(selectedName);
+      selectedBorrowerIdInput.value = matchedId || "";
+    });
+  }
+
   // Multi-item checkout row controls
   const checkoutContainer = document.getElementById("checkoutItemsContainer");
   const addCheckoutItemBtn = document.getElementById("btnAddCheckoutItem");

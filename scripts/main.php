@@ -226,6 +226,7 @@ function renderPagination($currentPage, $totalPages, $pageParam, $queryParams = 
 }
 
 $perPage = 10;
+$checkoutPerPage = 5;
 
 $borrowerSearch = trim($_GET['borrower_search'] ?? '');
 $borrowerTypeFilter = $_GET['borrower_type'] ?? '';
@@ -315,6 +316,62 @@ $equipmentStmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $equipmentStmt->bindValue(':offset', ($equipmentPage - 1) * $perPage, PDO::PARAM_INT);
 $equipmentStmt->execute();
 $equipments = $equipmentStmt->fetchAll();
+
+$checkoutBorrowerSearch = trim($_GET['checkout_borrower_search'] ?? '');
+$checkoutBorrowerPage = max(1, (int) ($_GET['checkout_borrower_page'] ?? 1));
+$checkoutBorrowerSql = 'SELECT * FROM borrowers WHERE 1=1';
+$checkoutBorrowerCountSql = 'SELECT COUNT(*) FROM borrowers WHERE 1=1';
+$checkoutBorrowerParams = [];
+
+if ($checkoutBorrowerSearch !== '') {
+    $checkoutBorrowerSql .= ' AND (borrower_no ILIKE :checkout_borrower_search OR full_name ILIKE :checkout_borrower_search)';
+    $checkoutBorrowerCountSql .= ' AND (borrower_no ILIKE :checkout_borrower_search OR full_name ILIKE :checkout_borrower_search)';
+    $checkoutBorrowerParams[':checkout_borrower_search'] = '%' . $checkoutBorrowerSearch . '%';
+}
+
+$checkoutBorrowerCountStmt = $pdo->prepare($checkoutBorrowerCountSql);
+$checkoutBorrowerCountStmt->execute($checkoutBorrowerParams);
+$checkoutBorrowerTotal = (int) $checkoutBorrowerCountStmt->fetchColumn();
+$checkoutBorrowerTotalPages = max(1, (int) ceil($checkoutBorrowerTotal / $checkoutPerPage));
+$checkoutBorrowerPage = min($checkoutBorrowerPage, $checkoutBorrowerTotalPages);
+
+$checkoutBorrowerSql .= ' ORDER BY borrower_id DESC LIMIT :limit OFFSET :offset';
+$checkoutBorrowerStmt = $pdo->prepare($checkoutBorrowerSql);
+foreach ($checkoutBorrowerParams as $key => $value) {
+    $checkoutBorrowerStmt->bindValue($key, $value);
+}
+$checkoutBorrowerStmt->bindValue(':limit', $checkoutPerPage, PDO::PARAM_INT);
+$checkoutBorrowerStmt->bindValue(':offset', ($checkoutBorrowerPage - 1) * $checkoutPerPage, PDO::PARAM_INT);
+$checkoutBorrowerStmt->execute();
+$checkoutBorrowers = $checkoutBorrowerStmt->fetchAll();
+
+$checkoutEquipmentSearch = trim($_GET['checkout_equipment_search'] ?? '');
+$checkoutEquipmentPage = max(1, (int) ($_GET['checkout_equipment_page'] ?? 1));
+$checkoutEquipmentSql = 'SELECT * FROM equipment WHERE 1=1';
+$checkoutEquipmentCountSql = 'SELECT COUNT(*) FROM equipment WHERE 1=1';
+$checkoutEquipmentParams = [];
+
+if ($checkoutEquipmentSearch !== '') {
+    $checkoutEquipmentSql .= ' AND (property_no ILIKE :checkout_equipment_search OR equipment_name ILIKE :checkout_equipment_search)';
+    $checkoutEquipmentCountSql .= ' AND (property_no ILIKE :checkout_equipment_search OR equipment_name ILIKE :checkout_equipment_search)';
+    $checkoutEquipmentParams[':checkout_equipment_search'] = '%' . $checkoutEquipmentSearch . '%';
+}
+
+$checkoutEquipmentCountStmt = $pdo->prepare($checkoutEquipmentCountSql);
+$checkoutEquipmentCountStmt->execute($checkoutEquipmentParams);
+$checkoutEquipmentTotal = (int) $checkoutEquipmentCountStmt->fetchColumn();
+$checkoutEquipmentTotalPages = max(1, (int) ceil($checkoutEquipmentTotal / $checkoutPerPage));
+$checkoutEquipmentPage = min($checkoutEquipmentPage, $checkoutEquipmentTotalPages);
+
+$checkoutEquipmentSql .= ' ORDER BY equipment_id DESC LIMIT :limit OFFSET :offset';
+$checkoutEquipmentStmt = $pdo->prepare($checkoutEquipmentSql);
+foreach ($checkoutEquipmentParams as $key => $value) {
+    $checkoutEquipmentStmt->bindValue($key, $value);
+}
+$checkoutEquipmentStmt->bindValue(':limit', $checkoutPerPage, PDO::PARAM_INT);
+$checkoutEquipmentStmt->bindValue(':offset', ($checkoutEquipmentPage - 1) * $checkoutPerPage, PDO::PARAM_INT);
+$checkoutEquipmentStmt->execute();
+$checkoutEquipments = $checkoutEquipmentStmt->fetchAll();
 
 $txStatusFilter = $_GET['tx_status'] ?? '';
 $txStartDate = $_GET['start_date'] ?? '';

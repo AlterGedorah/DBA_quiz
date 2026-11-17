@@ -353,14 +353,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <input type="hidden" name="action" value="checkout_equipment">
 
                         <div class="col-md-3">
-                            <label class="form-label small fw-bold">Select Borrower</label>
-                            <select name="borrower_id" class="form-select" required>
-                                <option value="" disabled selected>Choose...</option>
+                            <label class="form-label small fw-bold">Borrower</label>
+                            <input type="text" id="borrowerLookup" list="borrowerSearchList" class="form-control" placeholder="Search borrower..." autocomplete="off" required>
+                            <datalist id="borrowerSearchList">
                                 <?php foreach ($allBorrowers as $b): ?>
-                                    <option value="<?= $b['borrower_id'] ?>"><?= htmlspecialchars($b['full_name']) ?>
+                                    <option value="<?= htmlspecialchars($b['full_name']) ?>" data-borrower-id="<?= $b['borrower_id'] ?>">
+                                        <?= htmlspecialchars($b['borrower_no']) ?> - <?= htmlspecialchars($b['full_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
-                            </select>
+                            </datalist>
+                            <input type="hidden" name="borrower_id" id="selectedBorrowerId" value="">
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-bold">Equipment Items</label>
@@ -436,8 +438,20 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="card-header bg-success text-dark">
                             <h5 class="mb-0">Borrowers</h5>
                         </div>
+                        <div class="card-body p-2 pb-0">
+                            <form method="GET" class="row g-2 align-items-center">
+                                <input type="hidden" name="checkout_borrower_page" value="1">
+                                <div class="col">
+                                    <input type="text" name="checkout_borrower_search" class="form-control form-control-sm" placeholder="Search borrowers..." value="<?= htmlspecialchars($checkoutBorrowerSearch) ?>">
+                                </div>
+                                <div class="col-auto d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                                    <a href="index.php#nav-checkout" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                </div>
+                            </form>
+                        </div>
                         <div class="table-responsive table-container border rounded" style="max-height: 300px; overflow-y: auto;">
-                            <table class="table table-sm table-hover align-middle mb-0" id="borrowersTable">
+                            <table class="table table-sm table-hover align-middle mb-0" id="checkoutBorrowersTable">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>ID</th>
@@ -445,8 +459,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                         <th>Type</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <?php foreach ($allBorrowers as $b): ?>
+                                <tbody id="checkoutBorrowersTableBody">
+                                    <?php foreach ($checkoutBorrowers as $b): ?>
                                         <tr>
                                             <td>
                                                 <?= htmlspecialchars($b['borrower_no']) ?>
@@ -460,8 +474,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($checkoutBorrowers)): ?>
+                                        <tr>
+                                            <td colspan="3" class="text-center py-3 text-muted">No borrowers match your search.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pb-2">
+                            <?= renderPagination($checkoutBorrowerPage, $checkoutBorrowerTotalPages, 'checkout_borrower_page', $_GET) ?>
                         </div>
                     </div>
 
@@ -471,9 +493,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="card-header bg-success text-dark">
                             <h5 class="mb-0">Equipment</h5>
                         </div>
+                        <div class="card-body p-2 pb-0">
+                            <form method="GET" class="row g-2 align-items-center">
+                                <input type="hidden" name="checkout_equipment_page" value="1">
+                                <div class="col">
+                                    <input type="text" name="checkout_equipment_search" class="form-control form-control-sm" placeholder="Search equipment..." value="<?= htmlspecialchars($checkoutEquipmentSearch) ?>">
+                                </div>
+                                <div class="col-auto d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                                    <a href="index.php#nav-checkout" class="btn btn-sm btn-outline-secondary">Reset</a>
+                                </div>
+                            </form>
+                        </div>
                         <div class="table-responsive table-container border rounded" style="max-height: 300px; overflow-y: auto;">
 
-                            <table class="table table-sm table-hover align-middle mb-0">
+                            <table class="table table-sm table-hover align-middle mb-0" id="checkoutEquipmentTable">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Prop #</th>
@@ -481,8 +515,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                         <th>Qty Available</th>
                                     </tr>
                                 </thead>
-                                <tbody id="eqClientTableBody">
-                                    <?php foreach ($allEquipments as $e): ?>
+                                <tbody id="checkoutEquipmentTableBody">
+                                    <?php foreach ($checkoutEquipments as $e): ?>
                                         <tr>
                                             <td>
                                                 <?= htmlspecialchars($e['property_no']) ?>
@@ -497,8 +531,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
                                         </tr>
                                     <?php endforeach; ?>
+                                    <?php if (empty($checkoutEquipments)): ?>
+                                        <tr>
+                                            <td colspan="3" class="text-center py-3 text-muted">No equipment matches your search.</td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pb-2">
+                            <?= renderPagination($checkoutEquipmentPage, $checkoutEquipmentTotalPages, 'checkout_equipment_page', $_GET) ?>
                         </div>
                     </div>
                 </div>
