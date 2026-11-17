@@ -266,7 +266,18 @@ $unionAllReport = $unionAllStmt->fetchAll();
 
 // Equipment Borrowing Summary
 $report2Search = trim($_GET['report2_search'] ?? '');
+$report2Sort = $_GET['report2_sort'] ?? 'total_qty_borrowed';
+$report2Order = normalizeSortOrder($_GET['report2_order'] ?? 'DESC', 'DESC');
 $report2Page = max(1, (int) ($_GET['report2_page'] ?? 1));
+$report2MinQty = max(0, (int) ($_GET['report2_min_qty'] ?? 0));
+$report2MaxQty = $_GET['report2_max_qty'] ?? '';
+$report2MaxQty = $report2MaxQty !== '' ? max(0, (int) $report2MaxQty) : null;
+$report2Availability = $_GET['report2_availability'] ?? '';
+
+$allowedReport2Sort = ['property_no', 'equipment_name', 'total_qty_borrowed', 'transaction_count', 'avg_planned_duration_days', 'min_qty', 'max_qty'];
+if (!in_array($report2Sort, $allowedReport2Sort, true)) {
+    $report2Sort = 'total_qty_borrowed';
+}
 
 $report2BaseSql = "
     SELECT
@@ -293,13 +304,30 @@ if ($report2Search !== '') {
     $report2Params[':report2_search'] = '%' . strtolower($report2Search) . '%';
 }
 
+if ($report2MinQty > 0) {
+    $report2CountSql .= ' AND total_qty_borrowed >= :report2_min_qty';
+    $report2DataSql .= ' AND total_qty_borrowed >= :report2_min_qty';
+    $report2Params[':report2_min_qty'] = $report2MinQty;
+}
+
+if ($report2MaxQty !== null) {
+    $report2CountSql .= ' AND total_qty_borrowed <= :report2_max_qty';
+    $report2DataSql .= ' AND total_qty_borrowed <= :report2_max_qty';
+    $report2Params[':report2_max_qty'] = $report2MaxQty;
+}
+
+if ($report2Availability !== '') {
+    $report2CountSql .= ' AND total_qty_borrowed ' . ($report2Availability === 'high' ? '>= 10' : ($report2Availability === 'moderate' ? 'BETWEEN 1 AND 9' : '= 0'));
+    $report2DataSql .= ' AND total_qty_borrowed ' . ($report2Availability === 'high' ? '>= 10' : ($report2Availability === 'moderate' ? 'BETWEEN 1 AND 9' : '= 0'));
+}
+
 $report2CountStmt = $pdo->prepare($report2CountSql);
 $report2CountStmt->execute($report2Params);
 $report2Total = (int) $report2CountStmt->fetchColumn();
 $report2TotalPages = max(1, (int) ceil($report2Total / $perPage));
 $report2Page = min($report2Page, $report2TotalPages);
 
-$report2DataSql .= ' ORDER BY total_qty_borrowed DESC LIMIT :limit OFFSET :offset';
+$report2DataSql .= ' ORDER BY ' . $report2Sort . ' ' . $report2Order . ' LIMIT :limit OFFSET :offset';
 $report2Stmt = $pdo->prepare($report2DataSql);
 foreach ($report2Params as $key => $value) {
     $report2Stmt->bindValue($key, $value);
@@ -352,6 +380,16 @@ $equipmentWithoutHistory = $report4Stmt->fetchAll();
 // Monthly Borrowing Report
 $monthlyPage = max(1, (int) ($_GET['monthly_page'] ?? 1));
 $monthlySearch = trim($_GET['monthly_search'] ?? '');
+$monthlySort = $_GET['monthly_sort'] ?? 'month_key';
+$monthlyOrder = normalizeSortOrder($_GET['monthly_order'] ?? 'DESC', 'DESC');
+$monthlyYear = trim($_GET['monthly_year'] ?? '');
+$monthlyMinTransactions = max(0, (int) ($_GET['monthly_min_transactions'] ?? 0));
+$monthlyMinItems = max(0, (int) ($_GET['monthly_min_items'] ?? 0));
+
+$allowedMonthlySort = ['readable_month', 'month_key', 'total_transactions', 'total_items_borrowed'];
+if (!in_array($monthlySort, $allowedMonthlySort, true)) {
+    $monthlySort = 'month_key';
+}
 
 $monthlySourceSql = "
     SELECT
@@ -374,13 +412,31 @@ if ($monthlySearch !== '') {
     $monthlyParams[':monthly_search'] = '%' . strtolower($monthlySearch) . '%';
 }
 
+if ($monthlyYear !== '') {
+    $monthlyCountSql .= ' AND EXTRACT(YEAR FROM month_key) = :monthly_year';
+    $monthlyDataSql .= ' AND EXTRACT(YEAR FROM month_key) = :monthly_year';
+    $monthlyParams[':monthly_year'] = (int) $monthlyYear;
+}
+
+if ($monthlyMinTransactions > 0) {
+    $monthlyCountSql .= ' AND total_transactions >= :monthly_min_transactions';
+    $monthlyDataSql .= ' AND total_transactions >= :monthly_min_transactions';
+    $monthlyParams[':monthly_min_transactions'] = $monthlyMinTransactions;
+}
+
+if ($monthlyMinItems > 0) {
+    $monthlyCountSql .= ' AND total_items_borrowed >= :monthly_min_items';
+    $monthlyDataSql .= ' AND total_items_borrowed >= :monthly_min_items';
+    $monthlyParams[':monthly_min_items'] = $monthlyMinItems;
+}
+
 $monthlyCountStmt = $pdo->prepare($monthlyCountSql);
 $monthlyCountStmt->execute($monthlyParams);
 $monthlyTotal = (int) $monthlyCountStmt->fetchColumn();
 $monthlyTotalPages = max(1, (int) ceil($monthlyTotal / $perPage));
 $monthlyPage = min($monthlyPage, $monthlyTotalPages);
 
-$monthlyDataSql .= ' ORDER BY month_key DESC LIMIT :limit OFFSET :offset';
+$monthlyDataSql .= ' ORDER BY ' . $monthlySort . ' ' . $monthlyOrder . ' LIMIT :limit OFFSET :offset';
 $monthlyStmt = $pdo->prepare($monthlyDataSql);
 foreach ($monthlyParams as $key => $value) {
     $monthlyStmt->bindValue($key, $value);

@@ -53,6 +53,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <li class="nav-item">
                         <a class="nav-link <?= ($currentPage === 'audit.php') ? 'active' : '' ?>" href="audit.php">Audit Logs</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'views.php') ? 'active' : '' ?>" href="views.php">Views</a>
+                    </li>
                 </ul>
             </div>
         </div>

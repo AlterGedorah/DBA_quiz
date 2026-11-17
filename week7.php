@@ -48,6 +48,9 @@ require('scripts/reportsW7.php');
                     <li class="nav-item">
                         <a class="nav-link <?= ($currentPage === 'audit.php') ? 'active' : '' ?>" href="audit.php">Audit Logs</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage === 'views.php') ? 'active' : '' ?>" href="views.php">Views</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -179,12 +182,46 @@ require('scripts/reportsW7.php');
                             <div class="card-body">
                                 <form method="GET" class="row g-2 mb-3 align-items-end">
                                     <input type="hidden" name="report2_page" value="1">
-                                    <div class="col-md-10">
-                                        <label class="form-label small mb-1">Search Equipment or Property Number</label>
-                                        <input type="text" name="report2_search" class="form-control form-control-sm" placeholder="Search equipment or property number..." value="<?= htmlspecialchars($report2Search) ?>">
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-1">Search</label>
+                                        <input type="text" name="report2_search" class="form-control form-control-sm" placeholder="Equipment or property..." value="<?= htmlspecialchars($report2Search) ?>">
                                     </div>
-                                    <div class="col-md-2 d-flex gap-2">
-                                        <button type="submit" class="btn btn-sm btn-success w-100">Apply</button>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Min Qty</label>
+                                        <input type="number" name="report2_min_qty" min="0" class="form-control form-control-sm" value="<?= htmlspecialchars((string) $report2MinQty) ?>">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Max Qty</label>
+                                        <input type="number" name="report2_max_qty" min="0" class="form-control form-control-sm" value="<?= $report2MaxQty !== null ? htmlspecialchars((string) $report2MaxQty) : '' ?>">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Availability</label>
+                                        <select name="report2_availability" class="form-select form-select-sm">
+                                            <option value="" <?= ($report2Availability === '') ? 'selected' : '' ?>>All</option>
+                                            <option value="high" <?= ($report2Availability === 'high') ? 'selected' : '' ?>>High</option>
+                                            <option value="moderate" <?= ($report2Availability === 'moderate') ? 'selected' : '' ?>>Moderate</option>
+                                            <option value="low" <?= ($report2Availability === 'low') ? 'selected' : '' ?>>Low</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label small mb-1">Sort</label>
+                                        <select name="report2_sort" class="form-select form-select-sm">
+                                            <option value="total_qty_borrowed" <?= ($report2Sort === 'total_qty_borrowed') ? 'selected' : '' ?>>Qty</option>
+                                            <option value="transaction_count" <?= ($report2Sort === 'transaction_count') ? 'selected' : '' ?>>Tx Count</option>
+                                            <option value="property_no" <?= ($report2Sort === 'property_no') ? 'selected' : '' ?>>Property</option>
+                                            <option value="equipment_name" <?= ($report2Sort === 'equipment_name') ? 'selected' : '' ?>>Equipment</option>
+                                            <option value="avg_planned_duration_days" <?= ($report2Sort === 'avg_planned_duration_days') ? 'selected' : '' ?>>Avg Duration</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label small mb-1">Order</label>
+                                        <select name="report2_order" class="form-select form-select-sm">
+                                            <option value="ASC" <?= ($report2Order === 'ASC') ? 'selected' : '' ?>>ASC</option>
+                                            <option value="DESC" <?= ($report2Order === 'DESC') ? 'selected' : '' ?>>DESC</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-sm btn-success">Apply</button>
                                         <a href="week7.php#report2" class="btn btn-sm btn-outline-secondary">Reset</a>
                                     </div>
                                 </form>
@@ -347,12 +384,40 @@ require('scripts/reportsW7.php');
                             <div class="card-body">
                                 <form method="GET" class="row g-2 mb-3 align-items-end">
                                     <input type="hidden" name="monthly_page" value="1">
-                                    <div class="col-md-10">
-                                        <label class="form-label small mb-1">Search Month or Year</label>
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-1">Search Month</label>
                                         <input type="text" name="monthly_search" class="form-control form-control-sm" placeholder="Search month or year..." value="<?= htmlspecialchars($monthlySearch) ?>">
                                     </div>
-                                    <div class="col-md-2 d-flex gap-2">
-                                        <button type="submit" class="btn btn-sm btn-secondary w-100">Apply</button>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Year</label>
+                                        <input type="number" name="monthly_year" min="2000" max="2100" class="form-control form-control-sm" value="<?= htmlspecialchars((string) $monthlyYear) ?>">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Min Tx</label>
+                                        <input type="number" name="monthly_min_transactions" min="0" class="form-control form-control-sm" value="<?= htmlspecialchars((string) $monthlyMinTransactions) ?>">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small mb-1">Min Items</label>
+                                        <input type="number" name="monthly_min_items" min="0" class="form-control form-control-sm" value="<?= htmlspecialchars((string) $monthlyMinItems) ?>">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label small mb-1">Sort</label>
+                                        <select name="monthly_sort" class="form-select form-select-sm">
+                                            <option value="month_key" <?= ($monthlySort === 'month_key') ? 'selected' : '' ?>>Month</option>
+                                            <option value="total_transactions" <?= ($monthlySort === 'total_transactions') ? 'selected' : '' ?>>Tx</option>
+                                            <option value="total_items_borrowed" <?= ($monthlySort === 'total_items_borrowed') ? 'selected' : '' ?>>Items</option>
+                                            <option value="readable_month" <?= ($monthlySort === 'readable_month') ? 'selected' : '' ?>>Label</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label small mb-1">Order</label>
+                                        <select name="monthly_order" class="form-select form-select-sm">
+                                            <option value="ASC" <?= ($monthlyOrder === 'ASC') ? 'selected' : '' ?>>ASC</option>
+                                            <option value="DESC" <?= ($monthlyOrder === 'DESC') ? 'selected' : '' ?>>DESC</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-sm btn-secondary">Apply</button>
                                         <a href="week7.php#report6" class="btn btn-sm btn-outline-secondary">Reset</a>
                                     </div>
                                 </form>
